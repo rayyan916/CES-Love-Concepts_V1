@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>戀愛認知微縮遊樂場 | Toyverse 學習玩家</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        display: ['"Fredoka"', '"Noto Sans TC"', 'sans-serif'],
+                    },
+                    colors: {
+                        toy: {
+                            bg: '#FFF8F0',
+                            card: '#FFFFFF',
+                            coral: '#FF6B6B',
+                            peach: '#FF9E7D',
+                            yellow: '#FFD166',
+                            mint: '#06D6A0',
+                            sky: '#118AB2',
+                            navy: '#073B4C',
+                            purple: '#9B5DE5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #FFE8D6;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        /* Toy-like 3D button style */
+        .toy-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 5px 0 rgba(7, 59, 76, 0.2), 0 8px 15px rgba(0,0,0,0.1);
+            border: 2px solid #073B4C;
+        }
+        .toy-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 rgba(7, 59, 76, 0.2), 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .toy-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border: 3px solid #073B4C;
+            box-shadow: 0 10px 0 rgba(7, 59, 76, 0.18), 0 20px 30px rgba(0,0,0,0.15);
+        }
+        .toy-badge {
+            border: 2px solid #073B4C;
+            box-shadow: 0 3px 0 #073B4C;
+        }
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #FFF3E6;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #FFB599;
+            border-radius: 8px;
+            border: 2px solid #FFF3E6;
+        }
+        /* Floating 3D labels */
+        .island-label {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            z-index: 10;
+        }
+        .island-label:hover {
+            transform: translate(-50%, -110%) scale(1.08);
+            z-index: 20;
+        }
+        /* Triangle SVG interactive hover */
+        .tri-zone {
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .tri-zone:hover {
+            filter: brightness(1.08);
+            transform: scale(1.03);
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="text-toy-navy">
+
+    <!-- 3D Toy World Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating HTML Markers for the 6 Hex Islands -->
+    <div id="labels-container" class="absolute inset-0 pointer-events-none overflow-hidden z-10"></div>
+
+    <!-- Top Brand & Progress Bar -->
+    <header class="fixed top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 z-30 flex items-center justify-between pointer-events-none">
+        <!-- Brand Logo -->
+        <div class="toy-card rounded-2xl px-3 py-2 md:px-4 md:py-2.5 flex items-center gap-2.5 pointer-events-auto">
+            <div class="w-9 h-9 md:w-11 md:h-11 rounded-xl bg-toy-coral flex items-center justify-center text-white text-lg md:text-xl font-bold border-2 border-toy-navy shadow-inner">
+                <i class="fa-solid fa-shapes"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-1.5">
+                    <span class="font-display font-black text-sm md:text-lg tracking-tight text-toy-navy">TOYVERSE 戀愛學園</span>
+                    <span class="hidden sm:inline-block bg-toy-yellow text-toy-navy text-[10px] font-black px-2 py-0.5 rounded-full border border-toy-navy">3D 微縮遊樂場</span>
+                </div>
+                <p class="text-[11px] md:text-xs text-slate-600 font-medium hidden sm:block">青少年對戀愛的正確認知 · 拖曳旋轉 / 點擊小島探索</p>
+            </div>
+        </div>
+
+        <!-- Progress & Camera Controls -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <!-- Exploration Progress -->
+            <div class="toy-card rounded-2xl px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2">
+                <i class="fa-solid fa-star text-amber-400 text-base md:text-lg drop-shadow"></i>
+                <div class="text-xs md:text-sm font-bold">
+                    <span class="hidden md:inline">探索進度：</span>
+                    <span id="visited-count" class="text-toy-coral font-black">0</span><span>/6 島嶼</span>
+                </div>
+            </div>
+
+            <!-- Reset Camera Button -->
+            <button onclick="resetCameraView()" title="重設全景視角" class="toy-btn bg-toy-yellow hover:bg-amber-300 text-toy-navy w-10 h-10 md:w-11 md:h-11 rounded-2xl flex items-center justify-center text-base md:text-lg">
+                <i class="fa-solid fa-compass"></i>
+            </button>
+
+            <!-- Toggle UI Visibility Button (Especially helpful on mobile) -->
+            <button id="toggle-panel-btn" onclick="toggleMainPanel()" title="展開/收起學習面板" class="toy-btn bg-toy-mint hover:bg-emerald-400 text-toy-navy px-3 h-10 md:h-11 rounded-2xl flex items-center gap-1.5 font-bold text-xs md:text-sm">
+                <i id="toggle-panel-icon" class="fa-solid fa-eye-slash"></i>
+                <span id="toggle-panel-text">收起面板看風景</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Bottom Quick Island Dock (Collapsible on Mobile) -->
+    <nav id="bottom-dock" class="fixed bottom-2 left-2 right-2 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:w-auto md:max-w-4xl z-30 pointer-events-auto transition-transform duration-300">
+        <div class="toy-card rounded-2xl p-1.5 md:p-2 flex items-center justify-between md:justify-center gap-1 md:gap-2 overflow-x-auto no-scrollbar">
+            <button onclick="selectIsland(1)" id="dock-btn-1" class="dock-btn flex-shrink-0 px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all hover:bg-rose-100">
+                <span class="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[11px] font-black border border-toy-navy">1</span>
+                <span>何謂戀愛</span>
+            </button>
+            <button onclick="selectIsland(2)" id="dock-btn-2" class="dock-btn flex-shrink-0 px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all hover:bg-amber-100">
+                <span class="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[11px] font-black border border-toy-navy">2</span>
+                <span>友誼與戀愛</span>
+            </button>
+            <button onclick="selectIsland(3)" id="dock-btn-3" class="dock-btn flex-shrink-0 px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all hover:bg-emerald-100">
+                <span class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px] font-black border border-toy-navy">3</span>
+                <span>目的與態度</span>
+            </button>
+            <button onclick="selectIsland(4)" id="dock-btn-4" class="dock-btn flex-shrink-0 px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all hover:bg-sky-100">
+                <span class="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[11px] font-black border border-toy-navy">4</span>
+                <span>結束因素</span>
+            </button>
+            <button onclick="selectIsland(5)" id="dock-btn-5" class="dock-btn flex-shrink-0 px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all hover:bg-purple-100">
+                <span class="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center text-[11px] font-black border border-toy-navy">5</span>
+                <span>處理方法</span>
+            </button>
+            <button onclick="selectIsland(6)" id="dock-btn-6" class="dock-btn flex-shrink-0 px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-1.5 transition-all hover:bg-orange-100">
+                <span class="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[11px] font-black border border-toy-navy">6</span>
+                <span>30題測試站</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Interactive Content Drawer / Modal -->
+    <!-- Responsive: On mobile it's a bottom sheet that can be minimized to a tiny bar or hidden; on desktop it's a right-side floating panel -->
+    <aside id="content-drawer" class="fixed z-20 transition-all duration-300 ease-in-out
+        left-2 right-2 bottom-16 top-16
+        md:left-auto md:right-5 md:top-20 md:bottom-20 md:w-[540px] lg:w-[620px]
+        flex flex-col pointer-events-none opacity-0 translate-y-8">
+        
+        <div class="toy-card rounded-3xl flex flex-col w-full h-full overflow-hidden pointer-events-auto">
+            <!-- Drawer Header -->
+            <div id="drawer-header" class="px-4 py-3 md:px-6 md:py-4 bg-rose-500 text-white border-b-3 border-toy-navy flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span id="drawer-badge" class="w-8 h-8 rounded-xl bg-white text-toy-navy font-black flex items-center justify-center text-sm border-2 border-toy-navy shadow">1</span>
+                    <div>
+                        <h2 id="drawer-title" class="font-display font-black text-base md:text-xl leading-tight">小島標題</h2>
+                        <p id="drawer-subtitle" class="text-[11px] md:text-xs text-white/90 font-medium">副標題說明</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <!-- Minimize to peek 3D model button -->
+                    <button onclick="minimizeDrawer()" title="暫時收起看3D模型" class="toy-btn bg-white text-toy-navy px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-down-left-and-up-right-to-center"></i>
+                        <span>縮小看3D</span>
+                    </button>
+                    <button onclick="closeDrawerToOverview()" title="關閉返回全景" class="toy-btn bg-toy-yellow text-toy-navy w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sub-navigation Tabs inside Island -->
+            <div id="drawer-tabs" class="px-4 py-2 bg-amber-50/80 border-b-2 border-slate-200 flex gap-2 overflow-x-auto flex-shrink-0">
+                <!-- Dynamically populated tabs -->
+            </div>
+
+            <!-- Drawer Body Content -->
+            <div id="drawer-body" class="p-4 md:p-6 overflow-y-auto custom-scroll flex-1 space-y-5 bg-gradient-to-b from-white to-orange-50/30">
+                <!-- Dynamically injected rich interactive content -->
+            </div>
+
+            <!-- Drawer Footer Navigation -->
+            <div class="px-4 py-2.5 md:px-6 md:py-3 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between flex-shrink-0 text-xs md:text-sm">
+                <button id="prev-island-btn" onclick="navigateAdjacentIsland(-1)" class="toy-btn bg-white hover:bg-slate-100 text-toy-navy px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>上一島嶼</span>
+                </button>
+                <span id="footer-status" class="font-bold text-slate-500">點擊上方分頁切換學習與遊戲</span>
+                <button id="next-island-btn" onclick="navigateAdjacentIsland(1)" class="toy-btn bg-toy-coral hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+                    <span>下一島嶼</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Minimized Floating Pill (Appears when user minimizes panel on mobile/desktop to inspect 3D island) -->
+    <div id="minimized-pill" class="fixed bottom-16 left-1/2 -translate-x-1/2 z-30 hidden pointer-events-auto">
+        <button onclick="restoreDrawer()" class="toy-btn bg-toy-coral text-white px-5 py-2.5 rounded-full font-black text-sm flex items-center gap-2 animate-bounce">
+            <i class="fa-solid fa-book-open"></i>
+            <span id="minimized-pill-text">返回打開「小島內容」</span>
+            <i class="fa-solid fa-chevron-up"></i>
+        </button>
+    </div>
+
+    <!-- Initial Welcome Hint Pill (Center top) -->
+    <div id="welcome-hint" class="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-opacity duration-500">
+        <div class="bg-toy-navy/90 text-white px-4 py-2 rounded-full text-xs md:text-sm font-bold shadow-lg flex items-center gap-2 border-2 border-white/40">
+            <i class="fa-solid fa-hand-pointer text-toy-yellow animate-pulse"></i>
+            <span>點擊任何一個 3D 六角形小島開始探索，或拖曳畫面旋轉遊樂場！</span>
+        </div>
+    </div>
+
+    <script>
+        /********************************************************************
+         * 1. EDUCATIONAL DATA & INTERACTIVE CONTENT (6 ISLANDS + 30 MC QUIZ)
+         ********************************************************************/
+        const ISLANDS_DATA = [
+            {
+                id: 1,
+                name: "1. 何謂戀愛",
+                shortTitle: "愛情三角理論",
+                subtitle: "親密、激情、承諾與 7 種愛的形態",
+                colorHex: 0xFF6B6B,
+                headerBg: "bg-rose-500",
+                icon: "fa-heart",
+                pos: { x: 0, z: 0 }, // Center Island
+                tabs: [
+                    { id: "theory", label: "📐 愛情三角理論" },
+                    { id: "types", label: "🌈 7種愛的組合" },
+                    { id: "cases", label: "🕵️ 個案辨認挑戰" }
+                ]
+            },
+            {
+                id: 2,
+                name: "2. 友誼與戀愛",
+                shortTitle: "友誼 vs 戀愛",
+                subtitle: "五個發展階段與魯賓「喜歡和愛情」理論",
+                colorHex: 0xFFB703,
+                headerBg: "bg-amber-500",
+                icon: "fa-people-arrows",
+                pos: { x: 0, z: -10.5 }, // North
+                tabs: [
+                    { id: "friendship", label: "🤝 何謂友誼與相同處" },
+                    { id: "rubin", label: "⚖️ 喜歡與愛情理論" },
+                    { id: "sortgame", label: "🎮 分辨喜歡與愛情" }
+                ]
+            },
+            {
+                id: 3,
+                name: "3. 目的及態度",
+                shortTitle: "戀愛目的與態度",
+                subtitle: "三大目的、正確態度與戀愛衝突處理",
+                colorHex: 0x06D6A0,
+                headerBg: "bg-emerald-500",
+                icon: "fa-seedling",
+                pos: { x: 9.1, z: -5.25 }, // North-East
+                tabs: [
+                    { id: "purpose", label: "🎯 戀愛的三大目的" },
+                    { id: "attitude", label: "🧭 應抱持的態度與技能" },
+                    { id: "conflict", label: "⚡ 衝突個案：槿成與曉欣" }
+                ]
+            },
+            {
+                id: 4,
+                name: "4. 結束的因素",
+                shortTitle: "分手因素分析",
+                subtitle: "個人、家庭、社會因素與統計數據",
+                colorHex: 0x118AB2,
+                headerBg: "bg-sky-600",
+                icon: "fa-cloud-rain",
+                pos: { x: 9.1, z: 5.25 }, // South-East
+                tabs: [
+                    { id: "factors", label: "🧩 三大結束因素" },
+                    { id: "stats", label: "📊 青少年分手數據" },
+                    { id: "fishbone", label: "🐟 原因型魚骨圖互動" }
+                ]
+            },
+            {
+                id: 5,
+                name: "5. 恰當處理方法",
+                shortTitle: "分手處理與時地人事",
+                subtitle: "悲傷五階段、雙方態度與「時地人事」個案",
+                colorHex: 0x9B5DE5,
+                headerBg: "bg-purple-600",
+                icon: "fa-hand-holding-heart",
+                pos: { x: 0, z: 10.5 }, // South
+                tabs: [
+                    { id: "grief", label: "❤️‍🩹 悲傷五階段與態度" },
+                    { id: "principles", label: "🛡️ 「時地人事」四原則" },
+                    { id: "casegame", label: "🔍 實戰個案分析遊戲" }
+                ]
+            },
+            {
+                id: 6,
+                name: "6. 測試站",
+                shortTitle: "30題終極挑戰",
+                subtitle: "涵蓋島嶼 1 至 5 的全方位選擇題認證",
+                colorHex: 0xF77F00,
+                headerBg: "bg-orange-500",
+                icon: "fa-trophy",
+                pos: { x: -9.1, z: 0 }, // West
+                tabs: [
+                    { id: "quiz", label: "📝 30題互動測驗" },
+                    { id: "review", label: "📚 題庫總覽與温習" }
+                ]
+            }
+        ];
+
+        // State Management
+        let currentIslandId = null;
+        let currentTabId = null;
+        let isDrawerOpen = false;
+        let isDrawerMinimized = false;
+        let visitedIslands = new Set();
+
+        // Interactive States for Island 1
+        let selectedTriangleType = "consummate";
+        let island1CaseAnswers = {};
+
+        // Interactive States for Island 2
+        let island2SortScore = 0;
+        let island2Answered = {};
+
+        // Interactive States for Island 3
+        let island3ConflictStep = 0;
+
+        // Interactive States for Island 4
+        let fishboneSelected = {};
+
+        // Interactive States for Island 5
+        let island5ActiveCase = "case1"; // case1: 紫晴與展緯, case2: 美兒與子傑
+        let island5CaseChecks = {};
+
+        // 30 MC Questions Data covering all 5 parts thoroughly
+        const QUIZ_QUESTIONS = [
+            // Part 1: 何謂戀愛 (愛情三角理論) - Q1 to Q7
+            {
+                q: "1. 美國心理學家羅伯特·史登堡（Robert Sternberg）提出的「愛情三角理論」包含哪三個主要元素？",
+                options: ["尊重、關懷、責任", "親密、激情、承諾", "喜歡、迷戀、空愛", "相識、建立、延續"],
+                ans: 1,
+                exp: "根據史登堡的「愛情三角理論」，愛情由「親密 (Intimacy)」、「激情 (Passion)」和「承諾 (Commitment)」三個主要元素組成。"
+            },
+            {
+                q: "2. 在「愛情三角理論」中，雙方願意分享和分擔情感需要，互相關懷、信任和支持，這屬於哪一個元素？",
+                options: ["親密 (Intimacy)", "激情 (Passion)", "承諾 (Commitment)", "迷戀 (Infatuation)"],
+                ans: 0,
+                exp: "「親密」是指心理層面的聯繫感，雙方願意分享和分擔情感需要，互相關懷、信任和支持。"
+            },
+            {
+                q: "3. 強烈感受到對方的吸引力，因而產生欲望，並渴求與對方聯繫，這是屬於哪個層面的哪個元素？",
+                options: ["心理層面的親密", "生理層面的激情", "社交層面的承諾", "理智層面的尊重"],
+                ans: 1,
+                exp: "「激情 (Passion)」屬於生理層面的吸引力，指強烈感受到對方的吸引力而產生欲望。"
+            },
+            {
+                q: "4. 「承諾 (Commitment)」分為短期和長期，下列哪一項屬於「長期承諾」的表現？",
+                options: ["初次約會看電影", "決定與對方確認戀人關係", "以訂婚或結婚方式認定對方為終身伴侶", "在小息和放學時結伴同行"],
+                ans: 2,
+                exp: "短期承諾是雙方確認關係的決定；長期承諾則是以訂婚、結婚等方式認定對方為終身伴侶。"
+            },
+            {
+                q: "5. 同時具備「親密 + 激情 + 承諾」三個元素的愛情形態稱為什麼？",
+                options: ["浪漫的愛 (Romantic Love)", "友伴的愛 (Companionate Love)", "虛幻的愛 (Fatuous Love)", "完整的愛 (Consummate Love)"],
+                ans: 3,
+                exp: "「完整的愛」同時包含親密、激情和承諾，是愛情最美好的狀態，戀人互相愛慕，也是彼此知己並希望一直伴隨。"
+            },
+            {
+                q: "6. 如果一段關係只有「親密 + 激情」，彼此相處很甜蜜，但不會給予承諾，這屬於哪一種類型？",
+                options: ["浪漫的愛", "友伴的愛", "虛幻的愛", "迷戀"],
+                ans: 0,
+                exp: "「浪漫的愛」包含親密與激情，雙方相處甜蜜但缺乏維持長遠關係的承諾。"
+            },
+            {
+                q: "7. 根據「愛情三角理論」，下列哪三種情況雖然可能令人有戀愛的感覺，但因為只得單一元素，在本質上「並非愛情」？",
+                options: ["浪漫的愛、友伴的愛、虛幻的愛", "喜歡（只有親密）、迷戀（只有激情）、空愛（只有承諾）", "點頭之交、普通朋友、好朋友", "暗戀、單戀、失戀"],
+                ans: 1,
+                exp: "只有激情屬於「迷戀」、只有親密屬於「喜歡」（深厚友情）、只有承諾屬於「空愛」，三者只具單一元素，本質上並非愛情。"
+            },
+
+            // Part 2: 友誼和戀愛相同及相異之處 - Q8 to Q13
+            {
+                q: "8. 朋友有不同種類，按親密程度由「淺至深」排列，正確的次序是什麼？",
+                options: ["知己 ➔ 好朋友 ➔ 普通朋友 ➔ 點頭之交", "點頭之交 ➔ 普通朋友 ➔ 好朋友 ➔ 知己", "普通朋友 ➔ 點頭之交 ➔ 知己 ➔ 好朋友", "點頭之交 ➔ 好朋友 ➔ 普通朋友 ➔ 知己"],
+                ans: 1,
+                exp: "朋友親密程度由淺至深依次為：點頭之交 ➔ 普通朋友 ➔ 好朋友 ➔ 知己。"
+            },
+            {
+                q: "9. 友誼和戀愛關係的發展均可分為哪五個相同階段？",
+                options: ["否認、憤怒、懇求、沮喪、接受", "相識、建立、延續、衰退、結束", "生理、安全、社交、尊重、自我實現", "喜歡、迷戀、空愛、友伴、完整"],
+                ans: 1,
+                exp: "友誼和戀愛關係的發展均經歷「相識、建立、延續、衰退和結束」五個階段。"
+            },
+            {
+                q: "10. 根據心理學家齊克·魯賓（Zick Rubin）提出的「喜歡和愛情」理論，下列哪一項屬於「喜歡 (Liking)」的特徵？",
+                options: ["沒有他/她，我覺得難以生活下去", "當我寂寞時，首先想到的是去找他/她", "認為雙方有相似之處、尊重及欣賞對方，但未涉及獨佔對方", "雙方有共存的親密感與強烈依戀"],
+                ans: 2,
+                exp: "魯賓指出「喜歡」包括認為雙方有相似之處、尊重對方、欣賞對方，未涉及想獨佔對方；而關懷、依戀及共存親密感則屬於「愛情」。"
+            },
+            {
+                q: "11. 「友伴的愛（親密＋承諾）」常使人較難區分友情和愛情，它比深厚的友情（只有親密）多了一份什麼關鍵元素？",
+                options: ["生理上的激情", "維持專一關係的決心（承諾）", "共同的興趣愛好", "金錢與物質分享"],
+                ans: 1,
+                exp: "「友伴的愛」比深厚友情多了一份「承諾」，因此戀人和朋友之間的重要區分正是維持專一關係的決心。"
+            },
+            {
+                q: "12. 教材《活動1.1》中，女生看到志軒打籃球動作敏捷很有型，一見他就會心跳加速，但雙方未有深入交流或承諾。這屬於什麼？",
+                options: ["完整的愛（屬於愛情）", "友伴的愛（屬於愛情）", "迷戀（只有激情，本質上並非愛情）", "空愛（只有承諾，本質上並非愛情）"],
+                ans: 2,
+                exp: "只因對方外在條件而着迷、心跳加速，欠缺心靈交流與承諾，只有「激情」元素，屬於「迷戀」，本質上並非愛情。"
+            },
+            {
+                q: "13. 關於確立戀愛關係，下列哪一項描述最符合教材所強調的「雙方備有共識」原則？",
+                options: ["只要其中一人有強烈戀愛感覺就算拍拖", "身邊朋友都起鬨說兩人是一對就算確立關係", "健康的人際關係是雙向的，當二人均通過溝通並明確表達愛意，才稱得上確立戀愛關係", "只要經常一起温習和放學同行就是戀人"],
+                ans: 2,
+                exp: "健康的人際關係是雙向的，若只有一人有感覺不算戀愛關係，必須二人均明確表達愛意並達致共識。"
+            },
+
+            // Part 3: 愛情的目的及抱持的態度 - Q14 to Q19
+            {
+                q: "14. 根據馬斯洛（Maslow）的「需求層次理論」，青少年透過談戀愛得到愛與關懷、尊重和接納，並有助邁向哪個最高層次的需求？",
+                options: ["生理需求", "安全需求", "自我實現需求", "金錢物質需求"],
+                ans: 2,
+                exp: "人在滿足生理和安全需求後會追求社交和尊重需求；正面積極的戀愛關係更有助個人邁向「自我實現需求」，發揮潛能。"
+            },
+            {
+                q: "15. 心理學家愛利克·艾里克森（Erik Erikson）的「心理社會發展理論」指出，青少年期與成年期分別面對什麼發展課題？",
+                options: ["青少年期：自我認同對身份混淆；成年期：親密對疏離", "青少年期：親密對疏離；成年期：自我認同對身份混淆", "青少年期：信任對不信任；成年期：勤奮對自卑", "青少年期：自主對羞怯；成年期：整合對絕望"],
+                ans: 0,
+                exp: "艾里克森指出青少年期正值追尋「自我認同對身份混淆」階段，達成正面的自我認同有助為成年期的「親密對疏離」建立親密關係作好準備。"
+            },
+            {
+                q: "16. 根據香港青年協會《中小學生戀愛態度調查》，青少年選擇伴侶時「最重視」的首要條件是什麼？",
+                options: ["外表英俊或漂亮", "家境富裕有零用錢", "會溝通及彼此了解 (50.8%)", "成績名列前茅"],
+                ans: 2,
+                exp: "調查顯示最重視的五項依次為：會溝通及彼此了解(50.8%)、關心和愛錫自己(40.5%)、品格良好(40.4%)、專一長情(29.9%)、對對方有感覺(25.8%)。"
+            },
+            {
+                q: "17. 發展健康戀愛關係需要掌握良好的生活技能，教材提及哪四項核心技能？",
+                options: ["運動技能、烹飪技能、投資技能、演講技能", "時間管理、財政管理、情緒管理、溝通能力", "電腦技能、外語能力、社交媒體管理、時間管理", "學業管理、家務管理、體重管理、情緒管理"],
+                ans: 1,
+                exp: "教材第15頁明確列出四項生活技能：時間管理、財政管理、情緒管理及溝通能力。"
+            },
+            {
+                q: "18. 在《活動1.2》槿成和曉欣的衝突個案中，曉欣堅持到主題樂園慶祝紀念日並怪責不夠錢的槿成「出爾反爾」，這反映兩人在哪方面出現分歧？",
+                options: ["財政管理與消費觀念（應學會理性消費，切勿以金錢或物質衡量感情）", "家庭背景與父母干預", "第三者介入", "海外升學方向"],
+                ans: 0,
+                exp: "曉欣重視物質慶祝方式，而槿成零用錢不足；戀愛中的青少年應學會理性消費，切勿以金錢或物質來衡量感情。"
+            },
+            {
+                q: "19. 承上題，紀念日翌日就是期末考試，曉欣想温習不想太晚回家，槿成卻指責她「從不願意花時間在我身上」，我們應如何建議他們改善？",
+                options: ["曉欣應該放棄温習通宵陪槿成", "兩人應立即分手不用再溝通", "妥善做好時間管理以平衡學業與戀愛，並運用同理心體諒對方的處境，改於考試後才慶祝", "各自找其他朋友去餐廳吃飯"],
+                ans: 2,
+                exp: "戀人需妥善安排時間平衡學業與感情，並運用同理心及良好溝通能力，互相體諒與尊重。"
+            },
+
+            // Part 4: 戀愛關係結束的因素 - Q20 to Q24
+            {
+                q: "20. 戀愛關係結束的因素主要可歸納為哪三大範疇？",
+                options: ["親密、激情、承諾因素", "個人因素、家庭因素、社會因素", "時間、地點、人物因素", "學業、金錢、外貌因素"],
+                ans: 1,
+                exp: "教材第18至21頁將戀愛關係結束的因素分為：個人因素、家庭因素及社會因素。"
+            },
+            {
+                q: "21. 根據香港家庭計劃指導會《青少年與性研究2021》，導致中學生分手的「最主要原因」是什麼？",
+                options: ["為專注學業", "對方有第三者 / 一腳踏幾船", "性格不合（男54%，女60%）", "沒有特別原因（無疾而終）"],
+                ans: 2,
+                exp: "數據顯示「性格不合」高居榜首（男54%、女60%），其次是「已對對方沒有感覺」（男36%、女47%）及「不了解對方而產生問題」（男33%、女32%）。"
+            },
+            {
+                q: "22. 青少年仍未確立人生方向，也沒有穩定的收入來源，或畢業後各自尋覓事業/到外國升學而分手，這屬於哪一類結束因素？",
+                options: ["個人因素（未能許下長期承諾或人生追求改變）", "家庭因素", "社會因素", "天氣因素"],
+                ans: 0,
+                exp: "青少年隨年齡漸長，思考長遠發展、專注事業或海外升學，或因未有穩定收入難以許下長期承諾，均屬「個人因素」。"
+            },
+            {
+                q: "23. 父母擔心子女拍拖後成績退步，或擔心子女過早發生親密行為導致身心受創，因而干預或反對戀情，這屬於什麼因素？",
+                options: ["個人因素", "家庭因素", "社會因素", "朋輩因素"],
+                ans: 1,
+                exp: "青少年普遍受父母監護，父母為保護子女而作出干預或反對，屬於「家庭因素」。"
+            },
+            {
+                q: "24. 在「原因型魚骨圖」中，向右的「魚頭」以及主骨上的「大骨」分別代表什麼？",
+                options: ["魚頭代表主要原因；大骨代表最終結果", "魚頭代表有待找出原因的「果」（如戀愛關係結束）；大骨代表引致果的「主要原因」類別（個人、家庭、社會）", "魚頭代表解決方法；大骨代表時間線", "魚頭代表優點；大骨代表缺點"],
+                ans: 1,
+                exp: "原因型魚骨圖中，魚頭向右代表「果」，主骨上的大骨代表主要原因分類，小骨代表具體說明或例子。"
+            },
+
+            // Part 5: 恰當的處理方法 - Q25 to Q30
+            {
+                q: "25. 根據心理學家庫伯勒·羅斯（Kübler-Ross）的「悲傷的五個階段」理論，面對失戀等重大悲傷事件時可能出現哪五個階段？",
+                options: ["相識、建立、延續、衰退、結束", "否認、憤怒、懇求、沮喪、接受", "震驚、逃避、報復、冷漠、遺忘", "自責、哭泣、失眠、暴食、康復"],
+                ans: 1,
+                exp: "庫伯勒·羅斯的悲傷五階段為：否認 (Denial)、憤怒 (Anger)、懇求 (Bargaining)、沮喪 (Depression) 和接受 (Acceptance)。"
+            },
+            {
+                q: "26. 被分手者心想：「我錯了，我會為你改變，求求你給我一個機會！」這屬於悲傷五階段中的哪一個階段？",
+                options: ["否認 (Denial)", "憤怒 (Anger)", "懇求 (Bargaining)", "沮喪 (Depression)"],
+                ans: 2,
+                exp: "試圖透過妥協、承諾改變來挽回關係，屬於「懇求 (Bargaining)」階段。"
+            },
+            {
+                q: "27. 主動提出分手的一方，應抱持什麼正確態度？",
+                options: ["直接封鎖對方所有通訊軟件，不作任何解釋以免尷尬", "交待分手原因、顧及對方感受、在合適情況下肯定對方的付出", "在社交平台公開數落對方的缺點", "要求對方賠償拍拖期間的所有消費"],
+                ans: 1,
+                exp: "主動提出分手的一方應以負責任態度清晰交待分手原因、顧及對方感受，並肯定對方的付出。"
+            },
+            {
+                q: "28. 處理分手的「時、地、人、事」四個技巧中，關於「地（提出分手的地點）」的選擇，下列哪項最恰當？",
+                options: ["偏僻無人的海灘或山邊，方便大聲爭吵", "廚房或實驗室等有刀具與危險物品的地方", "以保障雙方安全為前提，選擇熟悉的公共場所（如環境合適的餐廳），並避免容易觸景傷情的紀念地", "在對方家中客廳當着對方全家人面前提出"],
+                ans: 2,
+                exp: "提出分手的地點應以保障雙方安全為前提，選擇熟悉的公共場所，避免偏僻地點或易接觸危險物品之處，亦宜避開令對方特別傷感的常去之地。"
+            },
+            {
+                q: "29. 在《概念應用》紫晴與展緯的個案中，紫晴在毫無先兆下約展緯在「聖誕節」去兩人常去的「主題樂園」提出分手，並說「不想解釋太多」。她在「時」方面有什麼不妥？",
+                options: ["聖誕節主題樂園門票太貴", "沒有作出分手先兆，且選擇在特別節日（聖誕節）提出分手，容易令展緯更激動傷感", "應該在展緯生日當天提出才對", "應該用短訊在半夜提出"],
+                ans: 1,
+                exp: "處理分手的「時」原則指出：應避免在毫無先兆下提出分手，且不宜選擇特別節日或紀念日提出分手。"
+            },
+            {
+                q: "30. 在美兒與子傑的個案中，子傑升讀大學後一直不聽美兒電話，直到美兒晚上獨自在海灘致電他時，子傑才在電話中說「不必多說了，我們分手吧」，美兒氣得掛線。下列哪項改善建議最全面？",
+                options: ["子傑不應以逃避聯絡代替分手談判；應約在安全的公共場所當面坦誠交代原因，而美兒亦應保持冷靜聆聽並注意人身安全", "美兒應該在海灘繼續打電話直到天亮", "子傑應該請新認識的大學女同學代為通知美兒", "兩人應該在電話中互相指罵對方"],
+                ans: 0,
+                exp: "子傑在「時」上逃避聯絡、在「地」上未考慮美兒獨自夜處海灘的安全、在「人/事」上態度敷衍；雙方應選擇合適時間與安全公共場所，冷靜坦誠交代原因。"
+            }
+        ];
+
+        let userQuizAnswers = new Array(QUIZ_QUESTIONS.length).fill(null);
+        let currentQuizIndex = 0;
+
+        /********************************************************************
+         * 2. THREE.JS 3D TOY DIORAMA HEXAGON PLAYGROUND
+         ********************************************************************/
+        let scene, camera, renderer, raycaster, mouse;
+        let islandGroups = [];
+        let clickableMeshes = [];
+        let animatedProps = [];
+        let clouds = [];
+
+        // Camera Orbit / Pan Target State
+        let camState = {
+            theta: 0.45,        // Horizontal angle
+            phi: 0.88,          // Vertical tilt angle
+            radius: 30,         // Distance
+            targetX: 0,
+            targetY: 0,
+            targetZ: 0,
+            desiredTheta: 0.45,
+            desiredPhi: 0.88,
+            desiredRadius: 30,
+            desiredTargetX: 0,
+            desiredTargetY: 0,
+            desiredTargetZ: 0
+        };
+
+        let isDragging = false;
+        let pointerDownPos = { x: 0, y: 0 };
+        let previousPointerPos = { x: 0, y: 0 };
+
+        function initThreePlayground() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xFFF3E4);
+            scene.fog = new THREE.FogExp2(0xFFF3E4, 0.012);
+
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 200);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Warm Toy-Style Lighting
+            const ambientLight = new THREE.AmbientLight(0xFFF8F0, 0.78);
+            scene.add(ambientLight);
+
+            const hemiLight = new THREE.HemisphereLight(0xFFFFFF, 0xFFD166, 0.35);
+            hemiLight.position.set(0, 40, 0);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xFFFDF9, 0.9);
+            dirLight.position.set(18, 32, 22);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 5;
+            dirLight.shadow.camera.far = 90;
+            const d = 24;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            dirLight.shadow.bias = -0.0005;
+            scene.add(dirLight);
+
+            // Toy Table / Water Mat Base
+            const waterGeo = new THREE.CylinderGeometry(45, 45, 1, 64);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0xA8E6CF,
+                roughness: 0.4,
+                metalness: 0.05
+            });
+            const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+            waterMesh.position.y = -2.2;
+            waterMesh.receiveShadow = true;
+            scene.add(waterMesh);
+
+            // Decorative concentric toy rings on the water
+            const ringGeo = new THREE.RingGeometry(15.5, 16, 64);
+            ringGeo.rotateX(-Math.PI / 2);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.position.y = -1.65;
+            scene.add(ringMesh);
+
+            // Build Bridges connecting Center Island (1) to Outer Islands (2..6)
+            ISLANDS_DATA.slice(1).forEach(isl => {
+                createToyBridge(0, 0, isl.pos.x, isl.pos.z);
+            });
+
+            // Build the 6 Hexagonal Miniature Islands
+            ISLANDS_DATA.forEach(isl => {
+                createHexIsland(isl);
+            });
+
+            // Add Floating Toy Clouds
+            for (let i = 0; i < 8; i++) {
+                const cloud = createToyCloud();
+                const angle = (i / 8) * Math.PI * 2;
+                const dist = 16 + Math.random() * 10;
+                cloud.position.set(Math.cos(angle) * dist, 5.5 + Math.random() * 2.5, Math.sin(angle) * dist);
+                scene.add(cloud);
+                clouds.push({ mesh: cloud, angle, dist, speed: 0.001 + Math.random() * 0.0015, baseY: cloud.position.y });
+            }
+
+            // Create HTML Floating Badges for each Island
+            createHTMLIslandLabels();
+
+            // Raycaster & Input Listeners
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            setupInteractionListeners(renderer.domElement);
+            window.addEventListener('resize', onWindowResize);
+
+            // Adjust initial camera distance for mobile screens
+            if (window.innerWidth < 768) {
+                camState.radius = 36;
+                camState.desiredRadius = 36;
+            }
+        }
+
+        // Helper: Toy Plastic Material
+        function toyMat(colorHex, roughness = 0.35) {
+            return new THREE.MeshStandardMaterial({
+                color: colorHex,
+                roughness: roughness,
+                metalness: 0.05
+            });
+        }
+
+        // Create Wooden Toy Bridge between islands
+        function createToyBridge(x1, z1, x2, z2) {
+            const dx = x2 - x1;
+            const dz = z2 - z1;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            const angle = Math.atan2(dx, dz);
+
+            const bridgeGroup = new THREE.Group();
+            const steps = 7;
+            for (let i = 2; i <= steps - 2; i++) {
+                const t = i / steps;
+                const plankGeo = new THREE.BoxGeometry(1.6, 0.22, 0.65);
+                const plank = new THREE.Mesh(plankGeo, toyMat(0xDEB887, 0.5));
+                plank.position.set(0, -0.35 + Math.sin(t * Math.PI) * 0.35, (t - 0.5) * dist);
+                plank.castShadow = true;
+                plank.receiveShadow = true;
+                bridgeGroup.add(plank);
+            }
+            bridgeGroup.position.set((x1 + x2) / 2, 0, (z1 + z2) / 2);
+            bridgeGroup.rotation.y = angle;
+            scene.add(bridgeGroup);
+        }
+
+        // Create a Hexagonal Toy Island with unique 3D miniature props
+        function createHexIsland(islData) {
+            const group = new THREE.Group();
+            group.position.set(islData.pos.x, 0, islData.pos.z);
+            group.userData = { islandId: islData.id };
+
+            // 1. Base Soil Hexagon (Cylinder with 6 radial segments)
+            const baseGeo = new THREE.CylinderGeometry(4.2, 3.6, 2.2, 6);
+            const baseMesh = new THREE.Mesh(baseGeo, toyMat(0xF4A261, 0.5));
+            baseMesh.position.y = -1.1;
+            baseMesh.castShadow = true;
+            baseMesh.receiveShadow = true;
+            baseMesh.userData = { islandId: islData.id };
+            group.add(baseMesh);
+            clickableMeshes.push(baseMesh);
+
+            // 2. Top Pastel Grass / Theme Cap Hexagon
+            const capGeo = new THREE.CylinderGeometry(4.35, 4.2, 0.55, 6);
+            const capMesh = new THREE.Mesh(capGeo, toyMat(islData.colorHex, 0.3));
+            capMesh.position.y = 0.25;
+            capMesh.castShadow = true;
+            capMesh.receiveShadow = true;
+            capMesh.userData = { islandId: islData.id };
+            group.add(capMesh);
+            clickableMeshes.push(capMesh);
+
+            // 3. Inner Cream Stage Platform
+            const innerGeo = new THREE.CylinderGeometry(3.2, 3.3, 0.2, 6);
+            const innerMesh = new THREE.Mesh(innerGeo, toyMat(0xFFFDF9, 0.4));
+            innerMesh.position.y = 0.6;
+            innerMesh.receiveShadow = true;
+            innerMesh.userData = { islandId: islData.id };
+            group.add(innerMesh);
+            clickableMeshes.push(innerMesh);
+
+            // 4. Add Toy Trees around the edge
+            const treePositions = [
+                { x: -2.4, z: -1.6 },
+                { x: 2.5, z: -1.4 },
+                { x: -2.2, z: 1.8 }
+            ];
+            treePositions.forEach((tp, idx) => {
+                const tree = createToyTree(idx % 2 === 0 ? 0x06D6A0 : 0x52B788);
+                tree.position.set(tp.x, 0.65, tp.z);
+                tree.scale.setScalar(0.75 + (idx * 0.1));
+                group.add(tree);
+            });
+
+            // 5. Add Unique Miniature Landmark per Island
+            const landmark = buildIslandLandmark(islData.id);
+            landmark.position.y = 0.7;
+            group.add(landmark);
+
+            scene.add(group);
+            islandGroups.push({ id: islData.id, group, capMesh, baseY: 0 });
+        }
+
+        function createToyTree(leafColor) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 0.8, 8), toyMat(0x8D5524));
+            trunk.position.y = 0.4;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            const foliage1 = new THREE.Mesh(new THREE.SphereGeometry(0.65, 12, 12), toyMat(leafColor));
+            foliage1.position.y = 1.05;
+            foliage1.castShadow = true;
+            tree.add(foliage1);
+
+            const foliage2 = new THREE.Mesh(new THREE.SphereGeometry(0.48, 12, 12), toyMat(leafColor));
+            foliage2.position.y = 1.55;
+            foliage2.castShadow = true;
+            tree.add(foliage2);
+            return tree;
+        }
+
+        function createToyPawn(shirtColor, x, z) {
+            const pawn = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 0.85, 16), toyMat(shirtColor));
+            body.position.y = 0.42;
+            body.castShadow = true;
+            pawn.add(body);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 16), toyMat(0xFFE0BD));
+            head.position.y = 1.05;
+            head.castShadow = true;
+            pawn.add(head);
+
+            pawn.position.set(x, 0, z);
+            return pawn;
+        }
+
+        function buildIslandLandmark(id) {
+            const propGroup = new THREE.Group();
+
+            if (id === 1) {
+                // Island 1: Triangular Prism Monument + 3 Pillars (Intimacy, Passion, Commitment) + Floating Heart
+                const pillars = [
+                    { x: 0, z: -1.2, c: 0xFF6B6B },     // Intimacy
+                    { x: -1.1, z: 0.8, c: 0xFF9F1C },  // Passion
+                    { x: 1.1, z: 0.8, c: 0xFFD166 }    // Commitment
+                ];
+                pillars.forEach(p => {
+                    const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.5, 16), toyMat(p.c));
+                    pil.position.set(p.x, 0.75, p.z);
+                    pil.castShadow = true;
+                    propGroup.add(pil);
+                });
+                // Roof Triangle connecting the 3 pillars
+                const roofGeo = new THREE.CylinderGeometry(1.7, 1.7, 0.3, 3);
+                const roof = new THREE.Mesh(roofGeo, toyMat(0xFFFFFF));
+                roof.position.y = 1.65;
+                roof.castShadow = true;
+                propGroup.add(roof);
+
+                // Floating Heart Jewel on top
+                const heartCenter = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 1), toyMat(0xFF3366, 0.2));
+                heartCenter.position.y = 2.6;
+                heartCenter.castShadow = true;
+                propGroup.add(heartCenter);
+                animatedProps.push({ mesh: heartCenter, type: 'spinBob', baseY: 2.6 });
+
+            } else if (id === 2) {
+                // Island 2: Friendship & Love Seesaw + Two Toy Characters
+                const pivot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 0.7, 6), toyMat(0x073B4C));
+                pivot.position.y = 0.35;
+                propGroup.add(pivot);
+
+                const plank = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.18, 0.7), toyMat(0xFF6B6B));
+                plank.position.y = 0.75;
+                plank.castShadow = true;
+
+                const pawnA = createToyPawn(0x118AB2, -1.1, 0.1);
+                const pawnB = createToyPawn(0xEF476F, 1.1, 0.1);
+                plank.add(pawnA);
+                plank.add(pawnB);
+
+                propGroup.add(plank);
+                animatedProps.push({ mesh: plank, type: 'seesaw' });
+
+            } else if (id === 3) {
+                // Island 3: Purpose & Attitude - Growing Tree of Love with Heart Fruits & Couple Bench
+                const bench = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.6), toyMat(0xBC6C25));
+                bench.position.set(0, 0.2, 1.1);
+                bench.castShadow = true;
+                propGroup.add(bench);
+
+                const bigTree = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.6, 10), toyMat(0x7F4F24));
+                trunk.position.y = 0.8;
+                bigTree.add(trunk);
+
+                const crown = new THREE.Mesh(new THREE.SphereGeometry(1.25, 16, 16), toyMat(0xFF8FA3));
+                crown.position.y = 2.1;
+                crown.castShadow = true;
+                bigTree.add(crown);
+
+                // Little golden fruit orbs representing positive values
+                for (let i = 0; i < 5; i++) {
+                    const a = (i / 5) * Math.PI * 2;
+                    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), toyMat(0xFFD166));
+                    orb.position.set(Math.cos(a) * 1.15, 2.0 + (i % 2) * 0.4, Math.sin(a) * 1.15);
+                    bigTree.add(orb);
+                }
+                bigTree.position.set(0, 0, -0.4);
+                propGroup.add(bigTree);
+                animatedProps.push({ mesh: crown, type: 'pulse' });
+
+            } else if (id === 4) {
+                // Island 4: Breakup Factors - 3D Bar Chart Blocks & Fishbone Signpost
+                const bars = [
+                    { x: -1.1, h: 1.8, c: 0xEF476F },
+                    { x: -0.35, h: 1.3, c: 0xFFD166 },
+                    { x: 0.4, h: 1.0, c: 0x06D6A0 },
+                    { x: 1.15, h: 0.7, c: 0x118AB2 }
+                ];
+                bars.forEach(b => {
+                    const barMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, b.h, 0.55), toyMat(b.c));
+                    barMesh.position.set(b.x, b.h / 2, 0);
+                    barMesh.castShadow = true;
+                    propGroup.add(barMesh);
+                });
+
+            } else if (id === 5) {
+                // Island 5: Proper Handling (Time, Place, Person, Matter) - Toy Ferris Wheel & Clock Tower
+                const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.4, 2.0, 8), toyMat(0x073B4C));
+                stand.position.set(0, 1.0, 0);
+                propGroup.add(stand);
+
+                const wheel = new THREE.Group();
+                wheel.position.set(0, 2.0, 0.25);
+                const torus = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.1, 12, 24), toyMat(0xFFD166));
+                wheel.add(torus);
+
+                for (let i = 0; i < 6; i++) {
+                    const ang = (i / 6) * Math.PI * 2;
+                    const cab = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 12), toyMat(i % 2 === 0 ? 0xFF6B6B : 0x4CC9F0));
+                    cab.position.set(Math.cos(ang) * 1.15, Math.sin(ang) * 1.15, 0);
+                    wheel.add(cab);
+                }
+                propGroup.add(wheel);
+                animatedProps.push({ mesh: wheel, type: 'wheelSpin' });
+
+            } else if (id === 6) {
+                // Island 6: Quiz Station - Golden Podium & Rotating Trophy Star
+                const podium = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.9, 6), toyMat(0xFFFFFF));
+                podium.position.y = 0.45;
+                podium.castShadow = true;
+                propGroup.add(podium);
+
+                const trophy = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0), toyMat(0xFFD166, 0.15));
+                trophy.position.y = 1.9;
+                trophy.castShadow = true;
+                propGroup.add(trophy);
+                animatedProps.push({ mesh: trophy, type: 'spinBob', baseY: 1.9 });
+            }
+
+            return propGroup;
+        }
+
+        function createToyCloud() {
+            const cGroup = new THREE.Group();
+            const mat = toyMat(0xFFFFFF, 0.6);
+            const p1 = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 12), mat);
+            const p2 = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), mat);
+            p2.position.set(0.65, -0.1, 0.2);
+            const p3 = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 12), mat);
+            p3.position.set(-0.6, -0.15, -0.1);
+            cGroup.add(p1, p2, p3);
+            return cGroup;
+        }
+
+        function createHTMLIslandLabels() {
+            const container = document.getElementById('labels-container');
+            container.innerHTML = '';
+            ISLANDS_DATA.forEach(isl => {
+                const el = document.createElement('div');
+                el.id = `island-label-${isl.id}`;
+                el.className = 'island-label';
+                el.onclick = () => selectIsland(isl.id);
+                el.innerHTML = `
+                    <div class="toy-badge bg-white hover:bg-amber-50 text-toy-navy px-2.5 py-1 md:px-3 md:py-1.5 rounded-2xl flex items-center gap-1.5 shadow-md">
+                        <span class="w-5 h-5 md:w-6 md:h-6 rounded-lg ${isl.headerBg} text-white font-black text-xs flex items-center justify-center border border-toy-navy">
+                            ${isl.id}
+                        </span>
+                        <div class="text-left">
+                            <div class="font-black text-xs md:text-sm leading-none whitespace-nowrap">${isl.shortTitle}</div>
+                        </div>
+                        <span id="label-check-${isl.id}" class="hidden text-emerald-500 text-xs"><i class="fa-solid fa-circle-check"></i></span>
+                    </div>
+                    <div class="w-2.5 h-2.5 bg-white border-r-2 border-b-2 border-toy-navy rotate-45 mx-auto -mt-1"></div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function updateHTMLIslandLabels() {
+            ISLANDS_DATA.forEach(isl => {
+                const el = document.getElementById(`island-label-${isl.id}`);
+                if (!el) return;
+                const worldPos = new THREE.Vector3(isl.pos.x, 3.6, isl.pos.z);
+                worldPos.project(camera);
+
+                if (worldPos.z > 1) {
+                    el.style.display = 'none';
+                    return;
+                }
+                const x = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-(worldPos.y * 0.5) + 0.5) * window.innerHeight;
+                el.style.display = 'block';
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+            });
+        }
+
+        // Mouse & Touch Orbit + Click Raycasting
+        function setupInteractionListeners(domElement) {
+            domElement.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                pointerDownPos = { x: e.clientX, y: e.clientY };
+                previousPointerPos = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - previousPointerPos.x;
+                const dy = e.clientY - previousPointerPos.y;
+                previousPointerPos = { x: e.clientX, y: e.clientY };
+
+                camState.desiredTheta -= dx * 0.007;
+                camState.desiredPhi = Math.max(0.35, Math.min(1.35, camState.desiredPhi - dy * 0.006));
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+                if (moveDist < 6) {
+                    handleCanvasTap(e.clientX, e.clientY);
+                }
+            });
+
+            domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camState.desiredRadius = Math.max(14, Math.min(48, camState.desiredRadius + e.deltaY * 0.02));
+            }, { passive: false });
+        }
+
+        function handleCanvasTap(clientX, clientY) {
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(clickableMeshes, false);
+            if (intersects.length > 0) {
+                const hitIslandId = intersects[0].object.userData.islandId;
+                if (hitIslandId) {
+                    selectIsland(hitIslandId);
+                }
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            const time = performance.now() * 0.001;
+
+            // Smooth Camera Interpolation
+            camState.theta += (camState.desiredTheta - camState.theta) * 0.08;
+            camState.phi += (camState.desiredPhi - camState.phi) * 0.08;
+            camState.radius += (camState.desiredRadius - camState.radius) * 0.08;
+            camState.targetX += (camState.desiredTargetX - camState.targetX) * 0.08;
+            camState.targetY += (camState.desiredTargetY - camState.targetY) * 0.08;
+            camState.targetZ += (camState.desiredTargetZ - camState.targetZ) * 0.08;
+
+            camera.position.x = camState.targetX + camState.radius * Math.sin(camState.phi) * Math.sin(camState.theta);
+            camera.position.y = camState.targetY + camState.radius * Math.cos(camState.phi);
+            camera.position.z = camState.targetZ + camState.radius * Math.sin(camState.phi) * Math.cos(camState.theta);
+            camera.lookAt(camState.targetX, camState.targetY, camState.targetZ);
+
+            // Gentle bobbing for active island
+            islandGroups.forEach(item => {
+                if (item.id === currentIslandId) {
+                    item.group.position.y = Math.sin(time * 3) * 0.25 + 0.25;
+                } else {
+                    item.group.position.y += (0 - item.group.position.y) * 0.1;
+                }
+            });
+
+            // Animate miniature landmark props
+            animatedProps.forEach(p => {
+                if (p.type === 'spinBob') {
+                    p.mesh.rotation.y = time * 1.2;
+                    p.mesh.position.y = p.baseY + Math.sin(time * 2.5) * 0.18;
+                } else if (p.type === 'seesaw') {
+                    p.mesh.rotation.z = Math.sin(time * 2) * 0.18;
+                } else if (p.type === 'wheelSpin') {
+                    p.mesh.rotation.z = time * 0.6;
+                } else if (p.type === 'pulse') {
+                    const s = 1 + Math.sin(time * 2.2) * 0.04;
+                    p.mesh.scale.set(s, s, s);
+                }
+            });
+
+            // Orbit Clouds
+            clouds.forEach(c => {
+                c.angle += c.speed;
+                c.mesh.position.x = Math.cos(c.angle) * c.dist;
+                c.mesh.position.z = Math.sin(c.angle) * c.dist;
+                c.mesh.position.y = c.baseY + Math.sin(time + c.dist) * 0.2;
+                c.mesh.lookAt(0, c.mesh.position.y, 0);
+            });
+
+            renderer.render(scene, camera);
+            updateHTMLIslandLabels();
+        }
+
+        /********************************************************************
+         * 3. NAVIGATION, RESPONSIVE UI & CAMERA FOCUS LOGIC
+         ********************************************************************/
+        function selectIsland(id) {
+            const isl = ISLANDS_DATA.find(x => x.id === id);
+            if (!isl) return;
+
+            currentIslandId = id;
+            currentTabId = isl.tabs[0].id;
+            visitedIslands.add(id);
+            updateVisitedProgress();
+
+            // Hide initial welcome banner
+            const hint = document.getElementById('welcome-hint');
+            if (hint) hint.style.opacity = '0';
+
+            // Focus 3D Camera on selected island (offset slightly on desktop so island shows on the left while drawer is on the right)
+            const isDesktop = window.innerWidth >= 768;
+            camState.desiredTargetX = isl.pos.x + (isDesktop ? 3.5 : 0);
+            camState.desiredTargetZ = isl.pos.z;
+            camState.desiredRadius = isDesktop ? 19 : 24;
+            camState.desiredPhi = 0.82;
+
+            // Highlight Dock Button
+            document.querySelectorAll('.dock-btn').forEach(btn => {
+                btn.classList.remove('bg-toy-navy', 'text-white', 'ring-2', 'ring-toy-navy');
+            });
+            const activeDockBtn = document.getElementById(`dock-btn-${id}`);
+            if (activeDockBtn) {
+                activeDockBtn.classList.add('bg-toy-navy', 'text-white');
+            }
+
+            // Open & Render Drawer
+            isDrawerOpen = true;
+            isDrawerMinimized = false;
+            updateDrawerVisibility();
+            renderDrawerHeaderAndTabs(isl);
+            renderIslandTabContent(id, currentTabId);
+        }
+
+        function updateVisitedProgress() {
+            document.getElementById('visited-count').textContent = visitedIslands.size;
+            visitedIslands.forEach(id => {
+                const check = document.getElementById(`label-check-${id}`);
+                if (check) check.classList.remove('hidden');
+            });
+        }
+
+        function resetCameraView() {
+            const isMobile = window.innerWidth < 768;
+            camState.desiredTargetX = 0;
+            camState.desiredTargetY = 0;
+            camState.desiredTargetZ = 0;
+            camState.desiredRadius = isMobile ? 36 : 30;
+            camState.desiredPhi = 0.88;
+            camState.desiredTheta = 0.45;
+        }
+
+        function closeDrawerToOverview() {
+            isDrawerOpen = false;
+            isDrawerMinimized = false;
+            currentIslandId = null;
+            updateDrawerVisibility();
+            resetCameraView();
+        }
+
+        function minimizeDrawer() {
+            isDrawerMinimized = true;
+            updateDrawerVisibility();
+            // Center camera right on the island so user can admire the 3D toy model unobstructed
+            if (currentIslandId) {
+                const isl = ISLANDS_DATA.find(x => x.id === currentIslandId);
+                camState.desiredTargetX = isl.pos.x;
+                camState.desiredTargetZ = isl.pos.z;
+                camState.desiredRadius = 16;
+            }
+        }
+
+        function restoreDrawer() {
+            if (!currentIslandId) {
+                selectIsland(1);
+                return;
+            }
+            isDrawerMinimized = false;
+            isDrawerOpen = true;
+            updateDrawerVisibility();
+        }
+
+        function toggleMainPanel() {
+            if (!currentIslandId) {
+                selectIsland(1);
+                return;
+            }
+            if (isDrawerOpen && !isDrawerMinimized) {
+                minimizeDrawer();
+            } else {
+                restoreDrawer();
+            }
+        }
+
+        function updateDrawerVisibility() {
+            const drawer = document.getElementById('content-drawer');
+            const pill = document.getElementById('minimized-pill');
+            const toggleIcon = document.getElementById('toggle-panel-icon');
+            const toggleText = document.getElementById('toggle-panel-text');
+
+            if (isDrawerOpen && !isDrawerMinimized) {
+                drawer.classList.remove('opacity-0', 'translate-y-8', 'pointer-events-none');
+                drawer.classList.add('opacity-100', 'translate-y-0');
+                pill.classList.add('hidden');
+                toggleIcon.className = 'fa-solid fa-eye-slash';
+                toggleText.textContent = '收起面板看3D';
+            } else if (isDrawerOpen && isDrawerMinimized) {
+                drawer.classList.add('opacity-0', 'translate-y-8', 'pointer-events-none');
+                drawer.classList.remove('opacity-100', 'translate-y-0');
+                pill.classList.remove('hidden');
+                const isl = ISLANDS_DATA.find(x => x.id === currentIslandId);
+                document.getElementById('minimized-pill-text').textContent = `展開「${isl ? isl.name : '學習面板'}」`;
+                toggleIcon.className = 'fa-solid fa-book-open';
+                toggleText.textContent = '展開學習內容';
+            } else {
+                drawer.classList.add('opacity-0', 'translate-y-8', 'pointer-events-none');
+                drawer.classList.remove('opacity-100', 'translate-y-0');
+                pill.classList.add('hidden');
+                toggleIcon.className = 'fa-solid fa-play';
+                toggleText.textContent = '開啟學習島嶼';
+            }
+        }
+
+        function navigateAdjacentIsland(dir) {
+            let nextId = (currentIslandId || 1) + dir;
+            if (nextId < 1) nextId = 6;
+            if (nextId > 6) nextId = 1;
+            selectIsland(nextId);
+        }
+
+        function renderDrawerHeaderAndTabs(isl) {
+            const header = document.getElementById('drawer-header');
+            header.className = `px-4 py-3 md:px-6 md:py-4 ${isl.headerBg} text-white border-b-3 border-toy-navy flex items-center justify-between flex-shrink-0`;
+            document.getElementById('drawer-badge').textContent = isl.id;
+            document.getElementById('drawer-title').textContent = isl.name;
+            document.getElementById('drawer-subtitle').textContent = isl.subtitle;
+
+            const tabsContainer = document.getElementById('drawer-tabs');
+            tabsContainer.innerHTML = isl.tabs.map(t => {
+                const active = t.id === currentTabId;
+                return `
+                    <button onclick="switchIslandTab('${t.id}')"
+                        class="px-3 py-1.5 rounded-xl font-bold text-xs md:text-sm whitespace-nowrap transition-all border-2 ${
+                            active
+                            ? 'bg-toy-navy text-white border-toy-navy shadow'
+                            : 'bg-white text-toy-navy border-slate-300 hover:bg-amber-100'
+                        }">
+                        ${t.label}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function switchIslandTab(tabId) {
+            currentTabId = tabId;
+            const isl = ISLANDS_DATA.find(x => x.id === currentIslandId);
+            renderDrawerHeaderAndTabs(isl);
+            renderIslandTabContent(currentIslandId, tabId);
+        }
+
+        /********************************************************************
+         * 4. ISLAND CONTENT RENDERERS (1 TO 6)
+         ********************************************************************/
+        function renderIslandTabContent(islandId, tabId) {
+            const body = document.getElementById('drawer-body');
+            body.scrollTop = 0;
+
+            if (islandId === 1) renderIsland1(body, tabId);
+            else if (islandId === 2) renderIsland2(body, tabId);
+            else if (islandId === 3) renderIsland3(body, tabId);
+            else if (islandId === 4) renderIsland4(body, tabId);
+            else if (islandId === 5) renderIsland5(body, tabId);
+            else if (islandId === 6) renderIsland6(body, tabId);
+        }
+
+        /* ================= ISLAND 1: 何謂戀愛 (愛情三角理論) ================= */
+        const TRIANGLE_TYPES = {
+            consummate: {
+                name: "完整的愛 (Consummate Love)",
+                elements: ["親密 Intimacy", "激情 Passion", "承諾 Commitment"],
+                isLove: true,
+                badge: "最理想的愛情狀態",
+                color: "bg-rose-500 text-white",
+                desc: "同時包含「親密 + 激情 + 承諾」三個元素。戀人互相愛慕（激情），也是彼此的知己（親密），並希望互相一直伴隨（承諾）。"
+            },
+            romantic: {
+                name: "浪漫的愛 (Romantic Love)",
+                elements: ["親密 Intimacy", "激情 Passion"],
+                isLove: true,
+                badge: "戀愛關係（欠缺承諾）",
+                color: "bg-pink-500 text-white",
+                desc: "包含「親密 + 激情」。彼此相處很甜蜜，有心靈交流及強烈吸引力，但不會給予維持長遠關係的承諾。"
+            },
+            companionate: {
+                name: "友伴的愛 (Companionate Love)",
+                elements: ["親密 Intimacy", "承諾 Commitment"],
+                isLove: true,
+                badge: "戀愛關係（較難與友情區分）",
+                color: "bg-purple-500 text-white",
+                desc: "包含「親密 + 承諾」。缺乏激情，但比深厚的友情多了一份「承諾」，彼此維持專一關係，視對方為生活中重要的夥伴。"
+            },
+            fatuous: {
+                name: "虛幻的愛 (Fatuous Love)",
+                elements: ["激情 Passion", "承諾 Commitment"],
+                isLove: true,
+                badge: "戀愛關係（欠缺親密了解）",
+                color: "bg-orange-500 text-white",
+                desc: "包含「激情 + 承諾」（如閃婚或一見鍾情便許下承諾）。雖然彼此感覺相愛又希望在一起，但未足夠了解對方，情感上未能體諒對方。"
+            },
+            liking: {
+                name: "喜歡 (Liking)",
+                elements: ["只有 親密 Intimacy"],
+                isLove: false,
+                badge: "⚠️ 本質上並非愛情（深厚友情）",
+                color: "bg-emerald-600 text-white",
+                desc: "只有「親密」元素，欠缺激情與承諾。只是喜歡和對方一起，也信任對方，通常是深厚的友情，彼此間欠缺強烈的吸引力。"
+            },
+            infatuation: {
+                name: "迷戀 (Infatuation)",
+                elements: ["只有 激情 Passion"],
+                isLove: false,
+                badge: "⚠️ 本質上並非愛情（一見鍾情/偶像崇拜）",
+                color: "bg-amber-500 text-white",
+                desc: "只有「激情」元素，欠缺親密與承諾。只因對方的外在條件（如外貌、球技）而着迷，欠缺心靈上的交流。"
+            },
+            empty: {
+                name: "空愛 (Empty Love)",
+                elements: ["只有 承諾 Commitment"],
+                isLove: false,
+                badge: "⚠️ 本質上並非愛情（例行義務維持）",
+                color: "bg-slate-600 text-white",
+                desc: "只有「承諾」元素，欠缺親密與激情。彼此間欠缺吸引力，相處時也不感到舒適，可能只因某種外在原因（如責任、習慣）而維持關係。"
+            }
+        };
+
+        function renderIsland1(container, tabId) {
+            if (tabId === "theory") {
+                container.innerHTML = `
+                    <div class="bg-rose-50 border-2 border-rose-200 rounded-2xl p-4">
+                        <div class="flex items-center gap-2 text-rose-700 font-black text-base mb-1">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            <span>羅伯特·史登堡 (Robert Sternberg)「愛情三角理論」</span>
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                            美國心理學家史登堡指出，愛包含<strong class="text-rose-600">「親密」、「激情」和「承諾」</strong>三個主要元素。戀愛中的雙方會以不同形式展現三個元素，滿足<strong>生理、心理和社交需要</strong>，並在感情與理性之中找出平衡點。
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-pink-50 shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center font-black text-lg mb-2 border border-toy-navy">
+                                <i class="fa-solid fa-comments"></i>
+                            </div>
+                            <h3 class="font-black text-base text-rose-700">1. 親密 (Intimacy)</h3>
+                            <span class="inline-block text-[11px] font-bold bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full my-1">心理層面的聯繫感</span>
+                            <p class="text-xs text-slate-700 mt-1 leading-relaxed">
+                                雙方願意分享和分擔情感需要，互相關懷、理解、信任和支持，感到溫暖與舒適。
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-orange-50 shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-lg mb-2 border border-toy-navy">
+                                <i class="fa-solid fa-fire-flame-curved"></i>
+                            </div>
+                            <h3 class="font-black text-base text-orange-700">2. 激情 (Passion)</h3>
+                            <span class="inline-block text-[11px] font-bold bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full my-1">生理層面的吸引力</span>
+                            <p class="text-xs text-slate-700 mt-1 leading-relaxed">
+                                強烈感受到對方的外貌或個人特質吸引力，因而產生浪漫欲望，並渴求與對方親近和聯繫。
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-amber-50 shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg mb-2 border border-toy-navy">
+                                <i class="fa-solid fa-ring"></i>
+                            </div>
+                            <h3 class="font-black text-base text-amber-800">3. 承諾 (Commitment)</h3>
+                            <span class="inline-block text-[11px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full my-1">維持關係的決心</span>
+                            <p class="text-xs text-slate-700 mt-1 leading-relaxed">
+                                <strong>短期承諾：</strong>雙方確認戀愛關係的決定。<br>
+                                <strong>長期承諾：</strong>以訂婚、結婚等方式認定對方為終身伴侶。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 text-white rounded-2xl p-4 flex items-center justify-between">
+                        <div>
+                            <div class="font-black text-sm text-toy-yellow">💡 延伸思考：擇偶條件調查</div>
+                            <p class="text-xs text-slate-300 mt-1">根據香港青年協會《中小學生戀愛態度調查》，青少年最重視的五大條件依次為：1.會溝通及彼此了解(50.8%)、2.關心和愛錫自己(40.5%)、3.品格良好(40.4%)、4.專一長情(29.9%)、5.對對方有感覺(25.8%)。</p>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "types") {
+                const activeInfo = TRIANGLE_TYPES[selectedTriangleType];
+                container.innerHTML = `
+                    <div class="text-xs md:text-sm text-slate-600 font-bold mb-2">
+                        👇 點擊下方「愛情三角圖」的不同位置或按鈕，探索 7 種關係組合：
+                    </div>
+
+                    <!-- Interactive SVG Triangle of Love -->
+                    <div class="bg-slate-50 border-2 border-toy-navy rounded-2xl p-3 flex flex-col items-center">
+                        <svg viewBox="0 0 360 255" class="w-full max-w-[340px] h-auto select-none">
+                            <!-- Triangle Main Lines -->
+                            <polygon points="180,28 50,215 310,215" fill="#FFF5F5" stroke="#073B4C" stroke-width="4" stroke-linejoin="round"/>
+                            <!-- Inner Lines -->
+                            <line x1="180" y1="28" x2="180" y2="215" stroke="#FDA4AF" stroke-width="2" stroke-dasharray="4"/>
+                            <line x1="50" y1="215" x2="245" y2="122" stroke="#FDA4AF" stroke-width="2" stroke-dasharray="4"/>
+                            <line x1="310" y1="215" x2="115" y2="122" stroke="#FDA4AF" stroke-width="2" stroke-dasharray="4"/>
+
+                            <!-- Vertex 1: 喜歡 (親密) -->
+                            <g onclick="selectTriangleZone('liking')" class="tri-zone">
+                                <rect x="125" y="4" width="110" height="36" rx="10" fill="${selectedTriangleType==='liking'?'#059669':'#FFFFFF'}" stroke="#073B4C" stroke-width="2.5"/>
+                                <text x="180" y="20" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='liking'?'#FFFFFF':'#059669'}">親密 Intimacy</text>
+                                <text x="180" y="34" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='liking'?'#FFFFFF':'#073B4C'}">【喜歡】</text>
+                            </g>
+
+                            <!-- Vertex 2: 迷戀 (激情) -->
+                            <g onclick="selectTriangleZone('infatuation')" class="tri-zone">
+                                <rect x="5" y="202" width="110" height="38" rx="10" fill="${selectedTriangleType==='infatuation'?'#D97706':'#FFFFFF'}" stroke="#073B4C" stroke-width="2.5"/>
+                                <text x="60" y="218" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='infatuation'?'#FFFFFF':'#D97706'}">激情 Passion</text>
+                                <text x="60" y="233" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='infatuation'?'#FFFFFF':'#073B4C'}">【迷戀】</text>
+                            </g>
+
+                            <!-- Vertex 3: 空愛 (承諾) -->
+                            <g onclick="selectTriangleZone('empty')" class="tri-zone">
+                                <rect x="245" y="202" width="110" height="38" rx="10" fill="${selectedTriangleType==='empty'?'#475569':'#FFFFFF'}" stroke="#073B4C" stroke-width="2.5"/>
+                                <text x="300" y="218" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='empty'?'#FFFFFF':'#475569'}">承諾 Commitment</text>
+                                <text x="300" y="233" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='empty'?'#FFFFFF':'#073B4C'}">【空愛】</text>
+                            </g>
+
+                            <!-- Edge 1: 浪漫的愛 (親密+激情) -->
+                            <g onclick="selectTriangleZone('romantic')" class="tri-zone">
+                                <rect x="42" y="102" width="96" height="34" rx="10" fill="${selectedTriangleType==='romantic'?'#EC4899':'#FCE7F3'}" stroke="#073B4C" stroke-width="2"/>
+                                <text x="90" y="118" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='romantic'?'#FFFFFF':'#9D174D'}">浪漫的愛</text>
+                                <text x="90" y="131" text-anchor="middle" font-size="9" font-weight="700" fill="${selectedTriangleType==='romantic'?'#FFFFFF':'#9D174D'}">親密 + 激情</text>
+                            </g>
+
+                            <!-- Edge 2: 友伴的愛 (親密+承諾) -->
+                            <g onclick="selectTriangleZone('companionate')" class="tri-zone">
+                                <rect x="222" y="102" width="96" height="34" rx="10" fill="${selectedTriangleType==='companionate'?'#9333EA':'#F3E8FF'}" stroke="#073B4C" stroke-width="2"/>
+                                <text x="270" y="118" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='companionate'?'#FFFFFF':'#6B21A8'}">友伴的愛</text>
+                                <text x="270" y="131" text-anchor="middle" font-size="9" font-weight="700" fill="${selectedTriangleType==='companionate'?'#FFFFFF':'#6B21A8'}">親密 + 承諾</text>
+                            </g>
+
+                            <!-- Edge 3: 虛幻的愛 (激情+承諾) -->
+                            <g onclick="selectTriangleZone('fatuous')" class="tri-zone">
+                                <rect x="132" y="198" width="96" height="34" rx="10" fill="${selectedTriangleType==='fatuous'?'#F97316':'#FFEDD5'}" stroke="#073B4C" stroke-width="2"/>
+                                <text x="180" y="214" text-anchor="middle" font-size="11" font-weight="900" fill="${selectedTriangleType==='fatuous'?'#FFFFFF':'#9A3412'}">虛幻的愛</text>
+                                <text x="180" y="227" text-anchor="middle" font-size="9" font-weight="700" fill="${selectedTriangleType==='fatuous'?'#FFFFFF':'#9A3412'}">激情 + 承諾</text>
+                            </g>
+
+                            <!-- Center: 完整的愛 -->
+                            <g onclick="selectTriangleZone('consummate')" class="tri-zone">
+                                <circle cx="180" cy="142" r="34" fill="${selectedTriangleType==='consummate'?'#E11D48':'#FFE4E6'}" stroke="#073B4C" stroke-width="3"/>
+                                <text x="180" y="139" text-anchor="middle" font-size="12" font-weight="900" fill="${selectedTriangleType==='consummate'?'#FFFFFF':'#9F1239'}">完整的愛</text>
+                                <text x="180" y="153" text-anchor="middle" font-size="9" font-weight="700" fill="${selectedTriangleType==='consummate'?'#FFFFFF':'#9F1239'}">三元素俱備</text>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <!-- Detail Card for Selected Type -->
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white shadow">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <h3 class="font-black text-base md:text-lg text-toy-navy">${activeInfo.name}</h3>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-black ${activeInfo.color}">${activeInfo.badge}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mb-2.5">
+                            ${activeInfo.elements.map(e => `<span class="px-2.5 py-0.5 rounded-lg bg-slate-100 border border-slate-300 text-xs font-bold text-slate-800">✔ ${e}</span>`).join('')}
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-700 leading-relaxed">${activeInfo.desc}</p>
+                    </div>
+                `;
+            } else if (tabId === "cases") {
+                const casesData = [
+                    {
+                        id: "A",
+                        title: "個案 A：籃球場上的心跳（教材活動 1.1）",
+                        story: "小敏看見志軒打籃球動作敏捷，入球又快又準，很有型！她心想：「我一見他就會心跳加速，這是愛情吧！」但兩人平時沒有深入交流。",
+                        elements: "只有「激情」",
+                        type: "迷戀 (Infatuation)",
+                        isLove: false,
+                        advice: "建議先從普通朋友做起，多透過日常溝通了解志軒的性格與價值觀（建立親密），切勿把單純的外表吸引誤當作愛情。"
+                    },
+                    {
+                        id: "B",
+                        title: "個案 B：甜蜜背後的隱憂（教材活動 1.1）",
+                        story: "俊宇說：「盈盈外表漂亮，性格和善，是我心目中的女神。我們約會已半年了，在一起時感覺甜蜜。不過，她近日在社交平台讚好一則『如何尋找更好的伴侶』帖文，也許我不是她的最佳選擇？」",
+                        elements: "包含「親密」+「激情」（欠缺承諾）",
+                        type: "浪漫的愛 (Romantic Love)",
+                        isLove: true,
+                        advice: "屬於戀愛關係中的「浪漫的愛」，但欠缺穩固的「承諾」。建議俊宇坦誠與盈盈溝通彼此對這段關係的期望，確認雙方是否願意維持專一承諾。"
+                    },
+                    {
+                        id: "C",
+                        title: "個案 C：形影不離的好友（教材活動 1.1）",
+                        story: "嘉欣說：「朋友都說我和家杰戀愛了。我們經常一起温習，又在小息、午飯和放學時結伴同行。可是，我不覺得他有特別的吸引力，我們是在戀愛嗎？」",
+                        elements: "只有「親密」",
+                        type: "喜歡 (Liking) — 深厚友誼",
+                        isLove: false,
+                        advice: "本質上並非愛情，只是深厚的友情（喜歡）。嘉欣應保持理性，認清友誼與戀愛的分別，向朋友澄清並與家杰維持健康舒適的朋友界線。"
+                    },
+                    {
+                        id: "D",
+                        title: "個案 D：閃電訂婚的情侶（補充個案）",
+                        story: "阿朗與莉莉在派對上一見鍾情，被彼此的外表深深吸引，認識僅兩星期便衝動決定訂婚，但其實雙方連對方的生活習慣和脾氣都不清楚。",
+                        elements: "包含「激情」+「承諾」（欠缺親密）",
+                        type: "虛幻的愛 (Fatuous Love)",
+                        isLove: true,
+                        advice: "屬於「虛幻的愛」，因欠缺「親密」基礎，相處後容易因不了解而產生摩擦。建議放慢腳步，多作深入心靈交流與磨合。"
+                    }
+                ];
+
+                container.innerHTML = `
+                    <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 text-xs md:text-sm text-amber-900 font-medium">
+                        🕵️ <strong>愛情偵探挑戰：</strong>細閱以下 4 個青少年情境，運用「愛情三角理論」判斷它們<strong>在本質上是否屬於愛情</strong>，並查看詳細分析與建議！
+                    </div>
+                    <div class="space-y-4">
+                        ${casesData.map(c => {
+                            const userChoice = island1CaseAnswers[c.id];
+                            const hasAnswered = userChoice !== undefined;
+                            const isCorrect = userChoice === c.isLove;
+                            return `
+                                <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white shadow-sm space-y-2.5">
+                                    <h4 class="font-black text-sm md:text-base text-toy-navy">${c.title}</h4>
+                                    <p class="text-xs md:text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">${c.story}</p>
+                                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                                        <span class="text-xs font-bold text-slate-600">這段關係本質上屬於「愛情」嗎？</span>
+                                        <button onclick="answerIsland1Case('${c.id}', true)" class="px-3 py-1 rounded-xl text-xs font-black border-2 border-toy-navy ${userChoice===true ? 'bg-rose-500 text-white' : 'bg-white hover:bg-rose-50'}">
+                                            ❤️ 是愛情
+                                        </button>
+                                        <button onclick="answerIsland1Case('${c.id}', false)" class="px-3 py-1 rounded-xl text-xs font-black border-2 border-toy-navy ${userChoice===false ? 'bg-slate-700 text-white' : 'bg-white hover:bg-slate-100'}">
+                                            🙅 並非愛情
+                                        </button>
+                                    </div>
+                                    ${hasAnswered ? `
+                                        <div class="mt-2 p-3 rounded-xl text-xs leading-relaxed border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-400 text-emerald-950' : 'bg-rose-50 border-rose-400 text-rose-950'}">
+                                            <div class="font-black mb-1">${isCorrect ? '✅ 判斷正確！' : '💡 再看清楚喔！正確答案：' + (c.isLove ? '屬於愛情' : '本質上並非愛情')}</div>
+                                            <div><strong>包含元素：</strong>${c.elements} ➔ 屬於<strong>【${c.type}】</strong></div>
+                                            <div class="mt-1"><strong>好友建議：</strong>${c.advice}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function selectTriangleZone(typeKey) {
+            selectedTriangleType = typeKey;
+            renderIslandTabContent(1, "types");
+        }
+
+        function answerIsland1Case(caseId, boolVal) {
+            island1CaseAnswers[caseId] = boolVal;
+            renderIslandTabContent(1, "cases");
+        }
+
+        /* ================= ISLAND 2: 友誼和戀愛的異同 ================= */
+        function renderIsland2(container, tabId) {
+            if (tabId === "friendship") {
+                container.innerHTML = `
+                    <!-- Friendship Spectrum -->
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-amber-50 space-y-3">
+                        <h3 class="font-black text-base text-toy-navy flex items-center gap-2">
+                            <i class="fa-solid fa-user-group text-amber-600"></i>
+                            <span>A. 何謂友誼？親密程度光譜</span>
+                        </h3>
+                        <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                            友誼指朋友間的情誼，建基於<strong>雙向的互動和了解</strong>，講求互相接納、包容與信任。隨着互動增加，話題更廣闊深入，關係由淺至深發展：
+                        </p>
+                        <div class="grid grid-cols-4 gap-1.5 text-center pt-1">
+                            <div class="p-2 rounded-xl bg-white border-2 border-slate-300">
+                                <div class="text-lg">👋</div>
+                                <div class="font-black text-xs mt-1">點頭之交</div>
+                                <div class="text-[10px] text-slate-500">最淺</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-amber-100/70 border-2 border-amber-300">
+                                <div class="text-lg">💬</div>
+                                <div class="font-black text-xs mt-1">普通朋友</div>
+                                <div class="text-[10px] text-slate-600">一般交流</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-amber-200/80 border-2 border-amber-400">
+                                <div class="text-lg">🙌</div>
+                                <div class="font-black text-xs mt-1">好朋友</div>
+                                <div class="text-[10px] text-amber-900">互相支持</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-amber-400 text-toy-navy border-2 border-toy-navy shadow">
+                                <div class="text-lg">🫂</div>
+                                <div class="font-black text-xs mt-1">知己</div>
+                                <div class="text-[10px] font-bold">最深親密</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Similarities: 5 Stages & Mutual Consensus -->
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-3">
+                        <h3 class="font-black text-base text-toy-navy">B. 友誼和戀愛的「相同之處」</h3>
+                        <div class="text-xs md:text-sm text-slate-700 space-y-1">
+                            <p>1. <strong>重要的人際關係：</strong>均是人類與生俱來的情感需求，建基於互相了解、包容和信任。</p>
+                            <p>2. <strong>雙方備有共識：</strong>健康關係是雙向的。當二人均明確表達愛意並達致共識，才算確立戀愛關係。</p>
+                            <p>3. <strong>經歷五個發展階段：</strong></p>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs border-collapse border-2 border-toy-navy rounded-xl overflow-hidden">
+                                <thead>
+                                    <tr class="bg-toy-navy text-white">
+                                        <th class="p-2 text-left">發展階段</th>
+                                        <th class="p-2 text-left">🤝 友誼表現</th>
+                                        <th class="p-2 text-left">❤️ 戀愛關係表現</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    <tr class="bg-amber-50/50"><td class="p-2 font-black">1. 相識</td><td class="p-2">互相認識</td><td class="p-2">互相吸引</td></tr>
+                                    <tr><td class="p-2 font-black">2. 建立</td><td class="p-2">成為朋友</td><td class="p-2">成為戀人</td></tr>
+                                    <tr class="bg-amber-50/50"><td class="p-2 font-black">3. 延續</td><td class="p-2">保持溝通，互相支持</td><td class="p-2">維持關係，或邁向婚姻</td></tr>
+                                    <tr><td class="p-2 font-black">4. 衰退</td><td class="p-2">疏於聯絡</td><td class="p-2">愛意消退</td></tr>
+                                    <tr class="bg-amber-50/50"><td class="p-2 font-black">5. 結束</td><td class="p-2">不再聯絡</td><td class="p-2">分手</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "rubin") {
+                container.innerHTML = `
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-3">
+                        <div class="flex items-center gap-2 text-amber-600 font-black text-base">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                            <span>相異之處：齊克·魯賓 (Zick Rubin)「喜歡和愛情」理論</span>
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                            深厚的友誼可能帶有「喜歡」的感覺，容易與愛情混淆。心理學家齊克·魯賓提出<strong>「喜歡和愛情」理論 (Liking vs. Loving Scale)</strong>，指出「愛情」在情感上較「喜歡」更為親密，並涉及關懷、依戀與獨佔性：
+                        </p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                            <!-- Liking -->
+                            <div class="p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-50 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-black text-sm text-amber-900">👍 喜歡 (Liking) — 友誼</span>
+                                    <span class="text-[11px] bg-amber-200 px-2 py-0.5 rounded-full font-bold">正面評價，不涉獨佔</span>
+                                </div>
+                                <ul class="text-xs space-y-2 text-slate-700">
+                                    <li class="bg-white p-2 rounded-xl border border-amber-200">
+                                        <strong>1. 認為雙方有相似之處：</strong><br>「我覺得我們很相似。」
+                                    </li>
+                                    <li class="bg-white p-2 rounded-xl border border-amber-200">
+                                        <strong>2. 尊重對方：</strong><br>「他/她是我的學習對象。」
+                                    </li>
+                                    <li class="bg-white p-2 rounded-xl border border-amber-200">
+                                        <strong>3. 欣賞對方：</strong><br>「我認為他/她非常好。」
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Loving -->
+                            <div class="p-3.5 rounded-2xl border-2 border-rose-400 bg-rose-50 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-black text-sm text-rose-900">❤️ 愛情 (Loving) — 戀愛</span>
+                                    <span class="text-[11px] bg-rose-200 px-2 py-0.5 rounded-full font-bold">更深親密與專屬陪伴</span>
+                                </div>
+                                <ul class="text-xs space-y-2 text-slate-700">
+                                    <li class="bg-white p-2 rounded-xl border border-rose-200">
+                                        <strong>1. 關懷對方 (Caring)：</strong><br>「我最關心的事就是他/她的幸福。」
+                                    </li>
+                                    <li class="bg-white p-2 rounded-xl border border-rose-200">
+                                        <strong>2. 依戀對方 (Attachment)：</strong><br>「沒有他/她，我覺得難以生活下去。」
+                                    </li>
+                                    <li class="bg-white p-2 rounded-xl border border-rose-200">
+                                        <strong>3. 雙方有共存的親密感 (Intimacy)：</strong><br>「當我寂寞時，首先想到的是去找他/她。」
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-slate-100 border border-slate-300 text-xs text-slate-700">
+                            <strong>🔑 本質差別總結：</strong>戀人與朋友的重要區分，除了生理吸引力（激情），更在於<strong>維持專一關係的決心（承諾）</strong>。
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "sortgame") {
+                const statements = [
+                    { id: 1, text: "「我覺得我們興趣很相似，很談得來。」", cat: "like", reason: "認為雙方有相似之處，屬於魯賓理論中的「喜歡」。" },
+                    { id: 2, text: "「我最關心的事就是他/她的幸福，願意為對方付出。」", cat: "love", reason: "體現對伴侶深切的「關懷」，屬於「愛情」。" },
+                    { id: 3, text: "「他/她處事成熟，是我的學習對象，我很尊重他/她。」", cat: "like", reason: "尊重與欣賞對方，屬於「喜歡」。" },
+                    { id: 4, text: "「當我寂寞時，首先想到的是去找他/她，渴望對方陪伴。」", cat: "love", reason: "雙方有共存的親密感與依戀，屬於「愛情」。" },
+                    { id: 5, text: "「沒有他/她，我覺得難以生活下去。」", cat: "love", reason: "強烈的「依戀對方」表現，屬於「愛情」。" },
+                    { id: 6, text: "「我認為他/她為人非常好，大家都喜歡和他/她做朋友。」", cat: "like", reason: "欣賞對方的品格，未涉及獨佔，屬於「喜歡」。" }
+                ];
+
+                container.innerHTML = `
+                    <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 text-xs md:text-sm font-bold text-amber-950">
+                        🎮 請根據齊克·魯賓的「喜歡和愛情」理論，分辨以下內心獨白屬於「👍 喜歡」還是「❤️ 愛情」：
+                    </div>
+                    <div class="space-y-3">
+                        ${statements.map(st => {
+                            const ans = island2Answered[st.id];
+                            return `
+                                <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-white shadow-sm space-y-2">
+                                    <div class="font-bold text-xs md:text-sm text-toy-navy">${st.text}</div>
+                                    <div class="flex gap-2">
+                                        <button onclick="answerRubinSort(${st.id}, 'like')" class="px-3 py-1 rounded-xl text-xs font-black border-2 border-toy-navy ${ans==='like' ? 'bg-amber-400 text-toy-navy' : 'bg-white hover:bg-amber-50'}">👍 喜歡 (Liking)</button>
+                                        <button onclick="answerRubinSort(${st.id}, 'love')" class="px-3 py-1 rounded-xl text-xs font-black border-2 border-toy-navy ${ans==='love' ? 'bg-rose-500 text-white' : 'bg-white hover:bg-rose-50'}">❤️ 愛情 (Loving)</button>
+                                    </div>
+                                    ${ans ? `
+                                        <div class="text-xs p-2 rounded-xl ${ans === st.cat ? 'bg-emerald-50 text-emerald-900 border border-emerald-300' : 'bg-rose-50 text-rose-900 border border-rose-300'}">
+                                            ${ans === st.cat ? '✅ 答對了！' : '❌ 答錯了！'} ${st.reason}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function answerRubinSort(id, choice) {
+            island2Answered[id] = choice;
+            renderIslandTabContent(2, "sortgame");
+        }
+
+        /* ================= ISLAND 3: 戀愛的目的及應抱持的態度 ================= */
+        function renderIsland3(container, tabId) {
+            if (tabId === "purpose") {
+                container.innerHTML = `
+                    <div class="space-y-3">
+                        <!-- Purpose 1: Maslow -->
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-emerald-50 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-black text-sm md:text-base text-emerald-900">1. 滿足情感需求（馬斯洛「需求層次理論」）</h3>
+                                <span class="text-[11px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-bold">Maslow</span>
+                            </div>
+                            <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                                人在滿足基本<strong>生理和安全需求</strong>後，會追求更高層次的<strong>社交（愛與歸屬）和尊重需求</strong>。青少年透過談戀愛分享內心感情，得到愛、關懷、尊重與接納而提升自尊感；伴侶的支持更有助個人邁向最高層次的<strong>「自我實現需求」</strong>，發揮潛能。
+                            </p>
+                        </div>
+
+                        <!-- Purpose 2: Ideal Partner -->
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-2">
+                            <h3 class="font-black text-sm md:text-base text-toy-navy">2. 尋覓理想伴侶</h3>
+                            <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                                青少年在戀愛歷程（相識 ➔ 建立 ➔ 延續）中，能釐清自己的擇偶條件（例如：<strong>共同興趣、性格和價值觀</strong>），為成年後進一步發展親密關係、計劃結婚和組織家庭奠定基礎。
+                            </p>
+                        </div>
+
+                        <!-- Purpose 3: Erikson -->
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-sky-50 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-black text-sm md:text-base text-sky-900">3. 豐富自我概念（艾里克森「心理社會發展理論」）</h3>
+                                <span class="text-[11px] bg-sky-200 text-sky-900 px-2 py-0.5 rounded-full font-bold">Erik Erikson</span>
+                            </div>
+                            <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                                艾里克森指出人在<strong>「青少年期」正值追尋「自我認同 對 身份混淆」</strong>的階段。情侶透過心靈交流，學習填補關係的缺失（如浪漫的愛缺承諾、友伴的愛缺激情、虛幻的愛缺親密），加強自我認識，塑造多元豐富的自我概念，為<strong>「成年期」的「親密 對 疏離」</strong>建立親密關係作好準備。
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "attitude") {
+                container.innerHTML = `
+                    <!-- Correct Cognition & Positive Values -->
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-3">
+                        <h3 class="font-black text-base text-toy-navy">❤️ 戀愛應抱持的態度（6大心形葉片）</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                            <div class="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                                <div class="font-black text-rose-800 text-sm mb-1">🧠 (1) 正確的認知</div>
+                                <p><strong>• 注重心靈交流：</strong>了解自己和對方，認清對方的特質和需要，避免只被激情牽引。</p>
+                                <p class="mt-1"><strong>• 保持理性及負責任：</strong>認清友誼和戀愛的本質差別，避免在發展戀愛關係前過於親密。</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                                <div class="font-black text-emerald-800 text-sm mb-1">🌟 (2) 正面的價值觀</div>
+                                <p><strong>• 平等尊重：</strong>每個人的條件和背景不同，出現意見分歧時應互相尊重，建立平等關係。</p>
+                                <p class="mt-1"><strong>• 互相支持、愛護珍惜：</strong>無論順境逆境均互相扶持，令對方感受到愛護和包容。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4 Life Skills -->
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-amber-50 space-y-2.5">
+                        <h3 class="font-black text-base text-toy-navy">🛠️ 良好的生活技能和溝通能力</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                            <div class="bg-white p-3 rounded-xl border-2 border-toy-navy">
+                                <div class="font-black text-sm text-sky-700"><i class="fa-regular fa-clock mr-1"></i>1. 時間管理</div>
+                                <p class="text-slate-700 mt-1">妥善安排時間，在個人需要、學業、家庭和戀愛關係之間取得平衡。</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border-2 border-toy-navy">
+                                <div class="font-black text-sm text-amber-700"><i class="fa-solid fa-coins mr-1"></i>2. 財政管理</div>
+                                <p class="text-slate-700 mt-1">約會應學會理性消費、量力而為，切勿以金錢或物質來衡量感情。</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border-2 border-toy-navy">
+                                <div class="font-black text-sm text-rose-700"><i class="fa-regular fa-face-smile mr-1"></i>3. 情緒管理</div>
+                                <p class="text-slate-700 mt-1">時刻覺察自己的情感需要，恰當地表達情緒，在情緒波動時保持理智克制。</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border-2 border-toy-navy">
+                                <div class="font-black text-sm text-emerald-700"><i class="fa-regular fa-comments mr-1"></i>4. 溝通能力</div>
+                                <p class="text-slate-700 mt-1">清晰表達心中所想，運用同理心理解對方心意；面對衝突或分手時以負責任言行回應。</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "conflict") {
+                container.innerHTML = `
+                    <div class="bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-3 text-xs md:text-sm text-emerald-950">
+                        ⚡ <strong>個案研究（教材活動 1.2）：中三情侶「槿成」與「曉欣」的紀念日衝突</strong><br>
+                        點擊下方三個衝突角度，分析他們在生活技能上的問題、對關係的影響及改善建議：
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- Conflict 1: Financial -->
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-black text-xs">角度一：財政管理 💰</span>
+                                <span class="text-xs font-bold text-slate-500">主題樂園門票爭拗</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl">
+                                <div><strong>👦 槿成：</strong>「我不夠錢買入場券。我們一定要用奢侈的方式慶祝嗎？」（零用錢有限，不希望奢侈消費）</div>
+                                <div><strong>👧 曉欣：</strong>「為甚麼不提早儲錢？之前說好去主題樂園，你出爾反爾！」（期望高消費慶祝，以物質衡量心意）</div>
+                            </div>
+                            <div class="text-xs text-rose-700 font-bold">⚠️ 對關係的影響：雙方金錢觀及消費能力出現分歧，令槿成感到財政壓力，曉欣則感到失望與不受重視。</div>
+                            <div class="text-xs bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-emerald-900">
+                                <strong>💡 改善建議：</strong>應學習理性消費，切勿以金錢或物質衡量感情；可共同商議改用合乎學生經濟能力的慶祝方式（如親手製作小禮物或到公園野餐）。
+                            </div>
+                        </div>
+
+                        <!-- Conflict 2: Time Management -->
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-0.5 rounded-full bg-sky-200 text-sky-900 font-black text-xs">角度二：時間管理 ⏰</span>
+                                <span class="text-xs font-bold text-slate-500">期末考試 vs 紀念日晚飯</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl">
+                                <div><strong>👧 曉欣：</strong>「紀念日翌日就是期末考試，我要温習，不想太晚回家。」（優先考慮學業責任）</div>
+                                <div><strong>👦 槿成：</strong>「我希望當晚到餐廳吃飯，但你拒絕我！你從不願意花時間在我身上。」（只重拍拖忽略學業）</div>
+                            </div>
+                            <div class="text-xs text-rose-700 font-bold">⚠️ 對關係的影響：未能平衡學業與戀愛的時間分配，導致雙方認為對方不體諒自己。</div>
+                            <div class="text-xs bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-emerald-900">
+                                <strong>💡 改善建議：</strong>做好時間管理，互相支持學業發展；可一起温習備戰考試，並共識將紀念日晚膳改於期末考試完成後才進行。
+                            </div>
+                        </div>
+
+                        <!-- Conflict 3: Emotion & Communication -->
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 font-black text-xs">角度三：情緒管理與溝通能力 🗣️</span>
+                                <span class="text-xs font-bold text-slate-500">不歡而散</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl">
+                                <div><strong>👦 槿成：</strong>動輒發怒指責：「你整天都在負面情緒中，我真的難以跟你相處！」</div>
+                                <div><strong>👧 曉欣：</strong>委屈哭泣：「你動不動就發怒，我也不敢跟你說真心話！」</div>
+                            </div>
+                            <div class="text-xs text-rose-700 font-bold">⚠️ 對關係的影響：缺乏同理心與情緒失控，阻塞心靈交流，令關係破裂。</div>
+                            <div class="text-xs bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-emerald-900">
+                                <strong>💡 改善建議：</strong>情緒激動時先深呼吸保持理智；溝通時運用「同理心」站在對方處境思考，多用溫和坦誠的「我訊息」表達需要而非互相指責。
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        /* ================= ISLAND 4: 戀愛關係結束的因素 ================= */
+        function renderIsland4(container, tabId) {
+            if (tabId === "factors") {
+                container.innerHTML = `
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-sky-50 space-y-2">
+                        <h3 class="font-black text-base text-sky-950">戀愛關係結束的三大因素</h3>
+                        <p class="text-xs md:text-sm text-slate-700">青少年應以正面積極態度應付分手問題，了解關係結束的原因，反思不足：</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white">
+                            <div class="font-black text-sm md:text-base text-rose-600 mb-1">1. 個人因素 (Personal Factors)</div>
+                            <ul class="text-xs md:text-sm text-slate-700 space-y-1.5 list-disc pl-4">
+                                <li><strong>激情消退：</strong>青春期外表和性格變化急速，激情容易隨雙方特質轉變而消失（「我好像沒有最初那樣愛她了」）。</li>
+                                <li><strong>親密界線與心智成熟度：</strong>青少年心智尚未成熟，若一方要求過早發生親密行為，另一方不想未婚懷孕或受創而分開。</li>
+                                <li><strong>難以許下長期承諾及人生追求轉變：</strong>青少年未確立人生方向及穩定收入，或因專注學業、到海外升學、發展事業（如希望成為飛機師或事業穩定才結婚）而選擇結束關係。</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white">
+                            <div class="font-black text-sm md:text-base text-amber-600 mb-1">2. 家庭因素 (Family Factors)</div>
+                            <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                                青少年尚處於求學時期，普遍受父母監護。父母為保護子女，或因擔心子女<strong>「拍拖後成績退步，未能兼顧學業」</strong>，或擔心<strong>「過早發生親密行為導致身心受創」</strong>而作出干預或反對，導致戀愛關係終結。
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white">
+                            <div class="font-black text-sm md:text-base text-sky-700 mb-1">3. 社會因素 (Social Factors)</div>
+                            <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                                社會大眾一般<strong>不接受青少年過早談戀愛</strong>。偏離社會大眾期望的戀愛關係較易受到批評、輿論壓力和阻撓，使戀愛中的二人出現磨擦，令關係較易破裂。
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "stats") {
+                const stats = [
+                    { label: "性格不合", m: 54, f: 60 },
+                    { label: "已對對方沒有感覺", m: 36, f: 47 },
+                    { label: "不了解對方而產生問題", m: 33, f: 32 },
+                    { label: "為專注學業", m: 18, f: 22 },
+                    { label: "對方有第三者 / 一腳踏幾船", m: 17, f: 21 },
+                    { label: "沒有特別原因（無疾而終）", m: 17, f: 18 }
+                ];
+
+                container.innerHTML = `
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-black text-sm md:text-base text-toy-navy">📊 數據速讀：中學生分手原因</h3>
+                            <span class="text-[11px] bg-sky-100 text-sky-900 px-2 py-0.5 rounded-full font-bold">家計會 2021</span>
+                        </div>
+                        <p class="text-xs text-slate-500">資料來源：《青少年與性研究2021》香港家庭計劃指導會（對象：曾經歷分手的中一至中六學生）</p>
+
+                        <div class="space-y-3 pt-1">
+                            ${stats.map(s => `
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs font-bold text-toy-navy">
+                                        <span>${s.label}</span>
+                                        <span>男 ${s.m}% | 女 ${s.f}%</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex border border-slate-300">
+                                        <div class="bg-sky-500 h-full" style="width:${s.m}%" title="男 ${s.m}%"></div>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex border border-slate-300">
+                                        <div class="bg-rose-400 h-full" style="width:${s.f}%" title="女 ${s.f}%"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-amber-50 border border-amber-300 text-xs leading-relaxed text-amber-950 mt-2">
+                            <strong>📌 數據分析重點：</strong><br>
+                            • <strong>「性格不合」</strong>是導致中學生分手的最主要原因（54% 男受訪者、60% 女受訪者）。<br>
+                            • <strong>「已對對方沒有感覺」</strong>是第二重要原因（47% 女受訪者、36% 男受訪者）。
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "fishbone") {
+                const items = [
+                    { id: "f1", text: "到外國工作或升學，各自尋覓事業方向", cat: "個人因素" },
+                    { id: "f2", text: "父母擔心子女拍拖影響學業成績而反對", cat: "家庭因素" },
+                    { id: "f3", text: "社會大眾一般不接受青少年過早談戀愛", cat: "社會因素" },
+                    { id: "f4", text: "雙方性格不合或激情隨時間消退", cat: "個人因素" },
+                    { id: "f5", text: "家人擔心子女過早發生親密行為受創", cat: "家庭因素" }
+                ];
+
+                container.innerHTML = `
+                    <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-sky-50 text-xs md:text-sm space-y-1">
+                        <div class="font-black text-sky-900">🐟 視覺思維：原因型魚骨圖 (Fishbone Diagram)</div>
+                        <p class="text-slate-700 text-xs">
+                            • <strong>魚頭（向右）：</strong>有待找出原因的「果」➔ <strong>【戀愛關係結束】</strong><br>
+                            • <strong>大骨：</strong>引致結果的主要原因分類（個人、家庭、社會）<br>
+                            • <strong>小骨：</strong>請將下方的小骨例子歸類到正確的大骨上！
+                        </p>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        ${items.map(it => {
+                            const sel = fishboneSelected[it.id];
+                            return `
+                                <div class="p-3 rounded-2xl border-2 border-toy-navy bg-white space-y-2">
+                                    <div class="text-xs md:text-sm font-bold text-toy-navy">🦴 小骨例子：「${it.text}」</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${["個人因素", "家庭因素", "社會因素"].map(c => `
+                                            <button onclick="selectFishboneCat('${it.id}', '${c}')"
+                                                class="px-3 py-1 rounded-xl text-xs font-black border-2 border-toy-navy ${sel===c ? 'bg-sky-600 text-white' : 'bg-slate-50 hover:bg-sky-100'}">
+                                                ${c}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                    ${sel ? `
+                                        <div class="text-xs font-bold ${sel===it.cat ? 'text-emerald-600' : 'text-rose-600'}">
+                                            ${sel===it.cat ? `✅ 正確！這屬於「${it.cat}」大骨。` : `❌ 再想想，這應該屬於「${it.cat}」大骨喔！`}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function selectFishboneCat(itemId, cat) {
+            fishboneSelected[itemId] = cat;
+            renderIslandTabContent(4, "fishbone");
+        }
+
+        /* ================= ISLAND 5: 恰當的處理方法 ================= */
+        function renderIsland5(container, tabId) {
+            if (tabId === "grief") {
+                const stages = [
+                    { s: "1. 否認 (Denial)", quote: "「不可能！他上個月還替我慶祝生日，我肯定他不是真的想分手！」", color: "bg-amber-100 border-amber-400" },
+                    { s: "2. 憤怒 (Anger)", quote: "「我對她付出那麼多，為何仍要分開？不公平！」", color: "bg-rose-100 border-rose-400" },
+                    { s: "3. 懇求 (Bargaining)", quote: "「我錯了，我會為你改變，求求你給我一個機會！」", color: "bg-sky-100 border-sky-400" },
+                    { s: "4. 沮喪 (Depression)", quote: "「無論我做甚麼都沒有用，她已放棄了我，我的前路一片灰暗。」", color: "bg-indigo-100 border-indigo-400" },
+                    { s: "5. 接受 (Acceptance)", quote: "「既然關係已無法挽回，我們就好好告別吧！」", color: "bg-emerald-100 border-emerald-400" }
+                ];
+
+                container.innerHTML = `
+                    <div class="p-4 rounded-2xl border-2 border-toy-navy bg-purple-50 space-y-2">
+                        <h3 class="font-black text-sm md:text-base text-purple-950">❤️‍🩹 庫伯勒·羅斯 (Kübler-Ross)「悲傷的五個階段」</h3>
+                        <p class="text-xs text-slate-700 leading-relaxed">
+                            面對失戀時通常會出現以下五個階段（<strong>不一定順序發生，也非所有人都會經歷</strong>）。辨識雙方的情緒有助調整處理方式：
+                        </p>
+                        <div class="space-y-2 pt-1">
+                            ${stages.map(st => `
+                                <div class="p-2.5 rounded-xl border-2 ${st.color} text-xs">
+                                    <span class="font-black text-toy-navy">${st.s}：</span>
+                                    <span class="text-slate-800">${st.quote}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Attitudes for Both Sides -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-white">
+                            <div class="font-black text-sm text-teal-700 mb-1.5">🗣️ 主動提出分手的一方</div>
+                            <ul class="space-y-1 list-disc pl-4 text-slate-700">
+                                <li>以負責任態度清晰<strong>交待分手原因</strong></li>
+                                <li><strong>顧及對方感受</strong>，避免指責或侮辱</li>
+                                <li>在合適情況下<strong>肯定對方的付出</strong></li>
+                            </ul>
+                        </div>
+                        <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-white">
+                            <div class="font-black text-sm text-rose-700 mb-1.5">🌱 被提出分手的一方</div>
+                            <ul class="space-y-1 list-disc pl-4 text-slate-700">
+                                <li><strong>調適負面情緒</strong>（如向信任的人傾訴）</li>
+                                <li><strong>積極面對挫折</strong>，明白勉強維繫傷害更大</li>
+                                <li><strong>接受關係結束</strong>，重新投入生活</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-toy-navy text-white text-xs text-center font-bold">
+                        ✨ 雙方共同成長：反省自己的不足和缺點，努力改善自己，為日後的戀情作更佳準備！
+                    </div>
+                `;
+            } else if (tabId === "principles") {
+                container.innerHTML = `
+                    <div class="bg-purple-50 border-2 border-purple-300 rounded-2xl p-3 text-xs md:text-sm text-purple-950 font-medium">
+                        🛡️ <strong>處理分手的技巧：「時、地、人、事」四原則</strong><br>
+                        作出分手決定前，應仔細評估原因及連帶影響，以減低雙方所受的傷害：
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-1.5">
+                            <div class="w-9 h-9 rounded-xl bg-amber-400 text-toy-navy font-black flex items-center justify-center border border-toy-navy text-base">時</div>
+                            <h4 class="font-black text-sm text-toy-navy">提出分手的日子和時機</h4>
+                            <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
+                                <li>避免在<strong>毫無先兆</strong>下突然提出分手。</li>
+                                <li><strong>不應以無故失去聯絡（人間蒸發/冷暴力）</strong>的方式逃避或代替分手談判。</li>
+                                <li><strong>不宜選擇特別節日或紀念日</strong>（如聖誕節、情人節、生日、考試前夕）提出分手。</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-1.5">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-400 text-toy-navy font-black flex items-center justify-center border border-toy-navy text-base">地</div>
+                            <h4 class="font-black text-sm text-toy-navy">提出分手的地點</h4>
+                            <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
+                                <li>以<strong>保障雙方安全</strong>為前提。</li>
+                                <li>選擇<strong>熟悉的公共場所</strong>（如環境安靜合適的餐廳），避免到偏僻的地點（如夜間海灘、後巷）。</li>
+                                <li>留意所選地點<strong>會否容易接觸到危險物品</strong>；亦宜避開兩人充滿回憶的常去主題樂園以免倍添傷感。</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-1.5">
+                            <div class="w-9 h-9 rounded-xl bg-rose-400 text-white font-black flex items-center justify-center border border-toy-navy text-base">人</div>
+                            <h4 class="font-black text-sm text-toy-navy">雙方的態度</h4>
+                            <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
+                                <li>主動分手者不需過分自責，被動分手者也不需過於激動。</li>
+                                <li>應顧及對方感受，<strong>不宜批評、指責，甚至出言侮辱對方</strong>。</li>
+                                <li>保持樂觀和積極，重新思考自己的需要及戀愛意義。</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-2xl border-2 border-toy-navy bg-white space-y-1.5">
+                            <div class="w-9 h-9 rounded-xl bg-sky-400 text-white font-black flex items-center justify-center border border-toy-navy text-base">事</div>
+                            <h4 class="font-black text-sm text-toy-navy">分手的原因和方式</h4>
+                            <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
+                                <li>確認雙方關係已無法維持，二人清楚分手的決定。</li>
+                                <li>嘗試找出<strong>合理的分手原因，並向對方坦誠解釋</strong>。</li>
+                                <li>確保提出分手的方式對雙方造成最小的傷害（宜當面理性溝通而非草率掛線）。</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "casegame") {
+                const cases = {
+                    case1: {
+                        title: "個案一：紫晴與展緯（聖誕節主題樂園分手）",
+                        story: "快將大學畢業的紫晴與展緯拍拖五年，紫晴打算畢業後到外國深造，展緯則希望三年內結婚。近日紫晴因感情轉淡決定分手，在毫無先兆下約展緯在「聖誕節」到二人常去的「主題樂園」說：「我們分手吧！我不想解釋太多，總之大家分開較好。唉，你動不動就情緒失控，真的很難和你溝通！」展緯激動哭喊：「為甚麼？我們上月才一起慶祝生日！我不要分開！」",
+                        items: [
+                            {
+                                dim: "時（日子與時機）",
+                                q: "紫晴在「時」的處理上是否妥善？",
+                                isGood: false,
+                                goodPt: "資料沒有顯示妥善之處。",
+                                badPt: "紫晴事前沒有暗示或透露感情轉淡（毫無先兆），且選擇在「聖誕節」這個特別節日提出分手，容易令展緯更激動。",
+                                improve: "紫晴應在事前作出分手先兆，並選擇節日或紀念日以外的平日提出。"
+                            },
+                            {
+                                dim: "地（分手地點）",
+                                q: "選擇「二人常去的主題樂園」是否完全妥善？",
+                                isGood: false,
+                                goodPt: "主題樂園是公共場所，人流多且不容易接觸到危險物品，具一定安全性。",
+                                badPt: "但主題樂園是「二人常去」充滿回憶的地方，且氣氛歡樂，在此分手容易令展緯觸景傷情、倍感難堪。",
+                                improve: "紫晴可選擇環境較安靜合適的公共餐廳，既安全亦能顧及對方情緒。"
+                            },
+                            {
+                                dim: "人（雙方態度）",
+                                q: "紫晴和展緯在「人（態度）」方面是否妥善？",
+                                isGood: false,
+                                goodPt: "資料沒有顯示妥善之處。",
+                                badPt: "紫晴表示「不想解釋太多」並指責展緯「動不動就情緒失控」，欠缺溝通誠意；展緯亦過於激動（處於否認與懇求階段）。",
+                                improve: "紫晴應顯示溝通誠意，不宜批評指責展緯；展緯亦應保持冷靜，給予紫晴解釋的機會。"
+                            },
+                            {
+                                dim: "事（原因與方式）",
+                                q: "紫晴在「事（交代原因與方式）」方面是否妥善？",
+                                isGood: false,
+                                goodPt: "當面提出讓雙方清楚知道分手決定。",
+                                badPt: "紫晴拒絕解釋分手原因（雙方對未來升學與結婚規劃不同、感情轉淡），令展緯難以接受。",
+                                improve: "紫晴應坦誠並溫和地解釋分手原因（如未來發展方向不同），嘗試令展緯明白。"
+                            }
+                        ]
+                    },
+                    case2: {
+                        title: "個案二：美兒與子傑（海灘長途電話分手）",
+                        story: "三年前中三的美兒與師兄子傑成為戀人。子傑升讀大學後甚少聯絡美兒，一直不聽她的電話。美兒看到子傑社交媒體常出現同一名女子。一天晚上，美兒獨自在海灘散心時打電話給子傑，子傑接聽後說：「不必多說了，我們分手吧。對不起！我發覺我們再沒有共同話題，我在享受大學生活，你則要專注應付文憑試。兩個月前你生日在我們第一次約會的餐廳，我實在不忍心提出分手。」美兒憤怒大喊：「你在大學另結新歡了吧！我不想聽！」隨即掛線。",
+                        items: [
+                            {
+                                dim: "時（日子與時機）",
+                                q: "子傑在「時」的處理上有哪些妥善與不妥之處？",
+                                isGood: false,
+                                goodPt: "子傑兩個月前已有冷淡先兆，且避免在美兒生日當天提出分手。",
+                                badPt: "子傑一直不聽美兒電話，以逃避聯絡的方式拖延分手；且在晚上美兒情緒低落時才在電話中草率提出。",
+                                improve: "子傑不應以失去聯絡逃避談判，應主動約定合適的日間時間當面溝通。"
+                            },
+                            {
+                                dim: "地（分手地點）",
+                                q: "在「美兒晚上獨自一人在海灘」時透過電話談分手是否妥善？",
+                                isGood: false,
+                                goodPt: "子傑避開了第一次約會的紀念餐廳。",
+                                badPt: "透過電話提出分手未能觀察及照顧美兒的即時安全；美兒當時「晚上獨自在偏僻海灘」，情緒激動下極可能發生危險！",
+                                improve: "應約在日間、熟悉的公共場所（如安靜的餐廳）當面提出，以保障雙方人身安全為首要前提。"
+                            },
+                            {
+                                dim: "人（雙方態度）",
+                                q: "子傑與美兒在「人（態度）」方面表現如何？",
+                                isGood: false,
+                                goodPt: "子傑有說「對不起」表達歉意。",
+                                badPt: "子傑起初說「不必多說了」態度敷衍；美兒則十分激動憤怒，拒絕聆聽並立即掛線。",
+                                improve: "子傑應以誠懇負責任的態度主動溝通並肯定過去付出；美兒應保持理性克制，先離開海灘返回安全地方並冷靜聆聽。"
+                            },
+                            {
+                                dim: "事（原因與方式）",
+                                q: "在「事（原因與方式）」方面應如何改善？",
+                                isGood: false,
+                                goodPt: "子傑在美兒追問下有交代原因（沒有共同話題、各自需專注大學與文憑試）。",
+                                badPt: "以電話被動交代及美兒掛線收場，雙方未能好好完成告別，造成較大心理傷害。",
+                                improve: "雙方應當面確認關係無法維持，子傑應溫和清晰地交代真實原因，將傷害減至最低。"
+                            }
+                        ]
+                    }
+                };
+
+                const activeCaseObj = cases[island5ActiveCase];
+
+                container.innerHTML = `
+                    <!-- Switch between Case 1 and Case 2 -->
+                    <div class="flex gap-2">
+                        <button onclick="switchIsland5Case('case1')" class="flex-1 py-2 px-3 rounded-xl font-black text-xs border-2 border-toy-navy ${island5ActiveCase==='case1' ? 'bg-purple-600 text-white' : 'bg-white text-toy-navy'}">
+                            🎡 個案一：紫晴與展緯 (P.26)
+                        </button>
+                        <button onclick="switchIsland5Case('case2')" class="flex-1 py-2 px-3 rounded-xl font-black text-xs border-2 border-toy-navy ${island5ActiveCase==='case2' ? 'bg-purple-600 text-white' : 'bg-white text-toy-navy'}">
+                            🏖️ 個案二：美兒與子傑 (P.27)
+                        </button>
+                    </div>
+
+                    <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-purple-50 text-xs md:text-sm space-y-1.5">
+                        <div class="font-black text-purple-950">${activeCaseObj.title}</div>
+                        <p class="text-slate-700 leading-relaxed bg-white p-3 rounded-xl border border-purple-200">${activeCaseObj.story}</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        ${activeCaseObj.items.map((it, idx) => {
+                            const key = `${island5ActiveCase}_${idx}`;
+                            const revealed = island5CaseChecks[key];
+                            return `
+                                <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-white space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-black text-xs md:text-sm text-purple-800">【${it.dim}】</span>
+                                        <button onclick="revealIsland5Dim('${key}')" class="toy-btn bg-toy-yellow text-toy-navy px-3 py-1 rounded-xl text-xs font-black">
+                                            ${revealed ? '✔ 已展開診斷分析' : '🔍 點擊評估妥善與改善方法'}
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-slate-600 font-medium">${it.q}</p>
+                                    ${revealed ? `
+                                        <div class="space-y-1.5 pt-1 text-xs border-t border-slate-200">
+                                            <div class="p-2 rounded-lg bg-emerald-50 text-emerald-950"><strong>✔ 妥善之處：</strong>${it.goodPt}</div>
+                                            <div class="p-2 rounded-lg bg-rose-50 text-rose-950"><strong>✘ 有待改善之處：</strong>${it.badPt}</div>
+                                            <div class="p-2 rounded-lg bg-amber-50 text-amber-950 border border-amber-300"><strong>💡 改善建議：</strong>${it.improve}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function switchIsland5Case(cKey) {
+            island5ActiveCase = cKey;
+            renderIslandTabContent(5, "casegame");
+        }
+
+        function revealIsland5Dim(key) {
+            island5CaseChecks[key] = !island5CaseChecks[key];
+            renderIslandTabContent(5, "casegame");
+        }
+
+        /* ================= ISLAND 6: 30題終極測試站 ================= */
+        function renderIsland6(container, tabId) {
+            const answeredCount = userQuizAnswers.filter(x => x !== null).length;
+            const correctCount = userQuizAnswers.reduce((acc, ans, idx) => acc + (ans === QUIZ_QUESTIONS[idx].ans ? 1 : 0), 0);
+
+            if (tabId === "quiz") {
+                const qObj = QUIZ_QUESTIONS[currentQuizIndex];
+                const selectedAns = userQuizAnswers[currentQuizIndex];
+                const isAnswered = selectedAns !== null;
+
+                container.innerHTML = `
+                    <!-- Score & Progress Header -->
+                    <div class="p-3.5 rounded-2xl border-2 border-toy-navy bg-orange-50 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <div class="text-xs font-bold text-orange-900">🏆 戀愛認知 30 題認證測驗</div>
+                            <div class="text-sm md:text-base font-black text-toy-navy">
+                                已作答：<span class="text-orange-600">${answeredCount}/30</span> 題 ｜ 目前得分：<span class="text-emerald-600">${correctCount}</span> / 30
+                            </div>
+                        </div>
+                        <button onclick="resetQuizAll()" class="toy-btn bg-white hover:bg-rose-50 text-rose-600 px-3 py-1 rounded-xl text-xs font-black">
+                            <i class="fa-solid fa-rotate-right mr-1"></i>重新測驗
+                        </button>
+                    </div>
+
+                    <!-- Question Number Quick Grid -->
+                    <div class="flex gap-1 overflow-x-auto py-1 no-scrollbar">
+                        ${QUIZ_QUESTIONS.map((_, idx) => {
+                            const ua = userQuizAnswers[idx];
+                            let bg = "bg-white text-slate-700 border-slate-300";
+                            if (ua !== null) {
+                                bg = (ua === QUIZ_QUESTIONS[idx].ans) ? "bg-emerald-500 text-white border-toy-navy" : "bg-rose-500 text-white border-toy-navy";
+                            }
+                            if (idx === currentQuizIndex) {
+                                bg += " ring-2 ring-toy-navy scale-105";
+                            }
+                            return `
+                                <button onclick="jumpToQuiz(${idx})" class="w-7 h-7 rounded-lg text-[11px] font-black border flex-shrink-0 transition-all ${bg}">
+                                    ${idx + 1}
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <!-- Current Question Card -->
+                    <div class="p-4 md:p-5 rounded-2xl border-2 border-toy-navy bg-white shadow space-y-3">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-500">
+                            <span>第 ${currentQuizIndex + 1} / 30 題</span>
+                            <span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
+                                ${currentQuizIndex < 7 ? '單元1：何謂戀愛' : currentQuizIndex < 13 ? '單元2：友誼與戀愛' : currentQuizIndex < 19 ? '單元3：目的與態度' : currentQuizIndex < 24 ? '單元4：結束因素' : '單元5：恰當處理方法'}
+                            </span>
+                        </div>
+
+                        <h3 class="font-black text-sm md:text-base text-toy-navy leading-relaxed">${qObj.q}</h3>
+
+                        <div class="space-y-2 pt-1">
+                            ${qObj.options.map((opt, oIdx) => {
+                                let btnStyle = "bg-slate-50 hover:bg-orange-50 border-slate-300 text-toy-navy";
+                                if (isAnswered) {
+                                    if (oIdx === qObj.ans) {
+                                        btnStyle = "bg-emerald-100 border-emerald-500 text-emerald-950 font-black";
+                                    } else if (oIdx === selectedAns && selectedAns !== qObj.ans) {
+                                        btnStyle = "bg-rose-100 border-rose-500 text-rose-950 font-black";
+                                    } else {
+                                        btnStyle = "bg-slate-50 border-slate-200 text-slate-400";
+                                    }
+                                }
+                                return `
+                                    <button onclick="selectQuizOption(${oIdx})"
+                                        class="w-full text-left p-3 rounded-xl border-2 text-xs md:text-sm transition-all flex items-start gap-2.5 ${btnStyle}">
+                                        <span class="w-6 h-6 rounded-lg bg-white border border-toy-navy flex items-center justify-center font-black text-xs flex-shrink-0">
+                                            ${['A', 'B', 'C', 'D'][oIdx]}
+                                        </span>
+                                        <span class="flex-1 leading-relaxed">${opt}</span>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        ${isAnswered ? `
+                            <div class="p-3.5 rounded-xl border-2 text-xs md:text-sm leading-relaxed ${selectedAns === qObj.ans ? 'bg-emerald-50 border-emerald-400 text-emerald-950' : 'bg-rose-50 border-rose-400 text-rose-950'}">
+                                <div class="font-black mb-1">
+                                    ${selectedAns === qObj.ans ? '🎉 答對了！太棒了！' : `💡 答錯了！正確答案是 (${['A','B','C','D'][qObj.ans]})`}
+                                </div>
+                                <div><strong>詳解：</strong>${qObj.exp}</div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Prev / Next Question Buttons -->
+                        <div class="flex items-center justify-between pt-2">
+                            <button onclick="jumpToQuiz(${Math.max(0, currentQuizIndex - 1)})" ${currentQuizIndex === 0 ? 'disabled' : ''}
+                                class="toy-btn bg-white disabled:opacity-40 text-toy-navy px-3.5 py-1.5 rounded-xl text-xs font-black">
+                                ⬅ 上一題
+                            </button>
+                            <button onclick="jumpToQuiz(${Math.min(QUIZ_QUESTIONS.length - 1, currentQuizIndex + 1)})" ${currentQuizIndex === QUIZ_QUESTIONS.length - 1 ? 'disabled' : ''}
+                                class="toy-btn bg-orange-500 disabled:opacity-40 text-white px-4 py-1.5 rounded-xl text-xs font-black">
+                                下一題 ➔
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (tabId === "review") {
+                container.innerHTML = `
+                    <div class="bg-orange-50 border-2 border-orange-300 rounded-2xl p-3 text-xs md:text-sm font-bold text-orange-950">
+                        📚 30 題完整題庫與詳解温習清單（可隨時點擊題目跳轉作答）：
+                    </div>
+                    <div class="space-y-2.5">
+                        ${QUIZ_QUESTIONS.map((item, idx) => {
+                            const ua = userQuizAnswers[idx];
+                            return `
+                                <div onclick="jumpToQuizFromReview(${idx})" class="p-3 rounded-2xl border-2 border-slate-300 hover:border-toy-navy bg-white cursor-pointer transition-all space-y-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="font-black text-xs text-toy-navy">${item.q}</span>
+                                        <span class="text-xs font-black flex-shrink-0 ${ua === null ? 'text-slate-400' : ua === item.ans ? 'text-emerald-600' : 'text-rose-600'}">
+                                            ${ua === null ? '未作答' : ua === item.ans ? '✔ 答對' : '✘ 答錯'}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-emerald-800 font-bold">正確答案：(${['A','B','C','D'][item.ans]}) ${item.options[item.ans]}</div>
+                                    <div class="text-[11px] text-slate-600">${item.exp}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function selectQuizOption(optIdx) {
+            userQuizAnswers[currentQuizIndex] = optIdx;
+            renderIslandTabContent(6, "quiz");
+        }
+
+        function jumpToQuiz(idx) {
+            currentQuizIndex = idx;
+            renderIslandTabContent(6, "quiz");
+        }
+
+        function jumpToQuizFromReview(idx) {
+            currentQuizIndex = idx;
+            switchIslandTab("quiz");
+        }
+
+        function resetQuizAll() {
+            userQuizAnswers = new Array(QUIZ_QUESTIONS.length).fill(null);
+            currentQuizIndex = 0;
+            renderIslandTabContent(6, "quiz");
+        }
+
+        // Start 3D Toy World on Window Load
+        window.onload = function () {
+            initThreePlayground();
+            animateLoop();
+        };
+    </script>
+</body>
+</html>
